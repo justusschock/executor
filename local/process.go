@@ -57,12 +57,16 @@ func (processInstance *process) result(finishedAt time.Time) executor.Result {
 	if processInstance.cmd.ProcessState != nil {
 		exitCode = processInstance.cmd.ProcessState.ExitCode()
 	}
+	stdout, stdoutTruncated := processInstance.stdout.snapshot()
+	stderr, stderrTruncated := processInstance.stderr.snapshot()
 	return executor.Result{
-		ExitCode:   exitCode,
-		StartedAt:  processInstance.startedAt,
-		FinishedAt: finishedAt,
-		Stdout:     processInstance.stdout.bytes(),
-		Stderr:     processInstance.stderr.bytes(),
+		ExitCode:        exitCode,
+		StartedAt:       processInstance.startedAt,
+		FinishedAt:      finishedAt,
+		Stdout:          stdout,
+		Stderr:          stderr,
+		StdoutTruncated: stdoutTruncated,
+		StderrTruncated: stderrTruncated,
 	}
 }
 

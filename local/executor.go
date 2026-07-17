@@ -36,8 +36,8 @@ func (executorInstance *Executor) Start(ctx context.Context, command executor.Co
 	cmd.Env = buildEnvironment(os.Environ(), ownedCommand.Env, runtime.GOOS == "windows")
 	cmd.Stdin = ownedCommand.Stdin
 
-	stdout := &lockedBuffer{}
-	stderr := &lockedBuffer{}
+	stdout := newLockedBuffer(ownedCommand.MaxStdoutBytes)
+	stderr := newLockedBuffer(ownedCommand.MaxStderrBytes)
 	destinationMu := &sync.Mutex{}
 	cmd.Stdout = writeTo(stdout, ownedCommand.Stdout, destinationMu)
 	cmd.Stderr = writeTo(stderr, ownedCommand.Stderr, destinationMu)

@@ -11,6 +11,9 @@ type Result struct {
 	FinishedAt time.Time
 	Stdout     []byte
 	Stderr     []byte
+	// StdoutTruncated and StderrTruncated report output omitted by capture limits.
+	StdoutTruncated bool
+	StderrTruncated bool
 }
 
 type ExitError struct {

@@ -19,6 +19,10 @@ type Command struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+	// MaxStdoutBytes and MaxStderrBytes bound retained output independently.
+	// Zero keeps all output; configured stream writers still receive every byte.
+	MaxStdoutBytes int64
+	MaxStderrBytes int64
 }
 
 // Validate checks portable command and dependency invariants.
@@ -50,6 +54,12 @@ func (c Command) Validate() error {
 		if containsByte(value, 0) {
 			return fmt.Errorf("%w: environment value for %q contains NUL", ErrInvalidCommand, key)
 		}
+	}
+	if c.MaxStdoutBytes < 0 {
+		return fmt.Errorf("%w: negative stdout capture limit", ErrInvalidCommand)
+	}
+	if c.MaxStderrBytes < 0 {
+		return fmt.Errorf("%w: negative stderr capture limit", ErrInvalidCommand)
 	}
 	if interfaceIsNil(c.Stdin) {
 		return fmt.Errorf("%w: stdin", ErrNilDependency)
