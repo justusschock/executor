@@ -241,7 +241,7 @@ durable execution in this module.
 
 ## Development
 
-Go 1.26 is required. Useful focused checks are:
+Go 1.22 or newer is required. Useful focused checks are:
 
 ```bash
 go test -race ./local

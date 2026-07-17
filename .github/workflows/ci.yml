@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GOPRIVATE: github.com/justusschock/*
+  GONOSUMDB: github.com/justusschock/*
+
+jobs:
+  test:
+    name: Go ${{ matrix.go }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - '1.22.x'
+          - '1.23.x'
+          - '1.24.x'
+          - '1.25.x'
+          - '1.26.x'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      - name: Configure private module authentication
+        env:
+          GO_MODULES_TOKEN: ${{ secrets.GO_MODULES_TOKEN }}
+        shell: bash
+        run: |
+          test -n "${GO_MODULES_TOKEN}"
+          umask 077
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "${GO_MODULES_TOKEN}" > "${HOME}/.netrc"
+
+      - name: Verify module
+        run: |
+          go mod download
+          go mod verify
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Run race tests
+        run: go test -race ./...
+
+      - name: Vet
+        run: go vet ./...
