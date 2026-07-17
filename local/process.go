@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"os/exec"
 	"time"
 
 	concurrency "github.com/justusschock/go-concurrency"
 	executor "github.com/justusschock/go-executor"
-	"github.com/justusschock/go-lifecycle/handoff"
 )
 
 var _ executor.Process = (*process)(nil)
@@ -91,12 +89,6 @@ func (processInstance *process) Kill(ctx context.Context) error {
 		return err
 	}
 	return processInstance.cmd.Process.Kill()
-}
-
-// Export is a private-receiver compatibility stub. Task 4 replaces it with
-// process-reference serialization and adoption.
-func (processInstance *process) Export(context.Context) (handoff.Artifact, error) {
-	return handoff.Artifact{}, fmt.Errorf("%w: local process export is deferred to Task 4", executor.ErrUnsupportedAdoption)
 }
 
 func cloneResult(result executor.Result) executor.Result {

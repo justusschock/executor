@@ -6,6 +6,7 @@ var (
 	ErrInvalidCommand      = errors.New("executor: invalid command")
 	ErrInvalidSignal       = errors.New("executor: invalid signal")
 	ErrNotStarted          = errors.New("executor: process not started")
+	ErrProcessExited       = errors.New("executor: process exited")
 	ErrNilDependency       = errors.New("executor: nil dependency")
 	ErrUnsupportedAdoption = errors.New("executor: unsupported adoption")
 )
