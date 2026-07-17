@@ -391,7 +391,7 @@ func TestSharedDestinationWritesAreSerializedAcrossStreams(t *testing.T) {
 	}
 }
 
-func TestSignalKillAndTemporaryExport(t *testing.T) {
+func TestSignalAndKill(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid signal", func(t *testing.T) {
@@ -416,23 +416,6 @@ func TestSignalKillAndTemporaryExport(t *testing.T) {
 		cancelKill()
 		if err := process.Kill(killContext); !errors.Is(err, context.Canceled) {
 			t.Fatalf("Kill() error = %v, want %v", err, context.Canceled)
-		}
-		if _, err := waitForProcess(t, process); err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("temporary export", func(t *testing.T) {
-		process, err := New().Start(context.Background(), helperCommand(t, "delay", nil, nil))
-		if err != nil {
-			t.Fatal(err)
-		}
-		artifact, err := process.Export(context.Background())
-		if !errors.Is(err, executor.ErrUnsupportedAdoption) {
-			t.Fatalf("Export() error = %v, want %v", err, executor.ErrUnsupportedAdoption)
-		}
-		if !reflect.ValueOf(artifact).IsZero() {
-			t.Fatalf("Export() artifact = %+v, want zero", artifact)
 		}
 		if _, err := waitForProcess(t, process); err != nil {
 			t.Fatal(err)

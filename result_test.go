@@ -39,6 +39,7 @@ func TestStableErrorsExist(t *testing.T) {
 		"ErrInvalidCommand":      ErrInvalidCommand,
 		"ErrInvalidSignal":       ErrInvalidSignal,
 		"ErrNotStarted":          ErrNotStarted,
+		"ErrProcessExited":       ErrProcessExited,
 		"ErrNilDependency":       ErrNilDependency,
 		"ErrUnsupportedAdoption": ErrUnsupportedAdoption,
 	}
