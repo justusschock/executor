@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+// Result is a final execution snapshot. Stdout and Stderr are owned by the
+// caller; executor implementations must not retain and later mutate them.
+// Truncation flags are final for the corresponding captured streams.
 type Result struct {
 	ExitCode   int
 	StartedAt  time.Time
