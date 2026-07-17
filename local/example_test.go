@@ -28,12 +28,12 @@ func ExampleExecutor_Run() {
 }
 
 func ExampleExecutor_boundedRun() {
-	first, err := exampleCommand("success")
+	first, err := exampleCommand("delay")
 	if err != nil {
 		fmt.Println("error")
 		return
 	}
-	second, err := exampleCommand("delay")
+	second, err := exampleCommand("success")
 	if err != nil {
 		fmt.Println("error")
 		return
@@ -52,8 +52,8 @@ func ExampleExecutor_boundedRun() {
 		fmt.Printf("%s %d\n", strings.TrimSpace(string(result.Stdout)), result.ExitCode)
 	}
 	// Output:
-	// out 0
 	// delayed 0
+	// out 0
 }
 
 func exampleCommand(mode string) (executor.Command, error) {
