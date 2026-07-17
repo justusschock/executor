@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"reflect"
 	"slices"
 )
 
@@ -46,6 +47,15 @@ func (c Command) Validate() error {
 			return fmt.Errorf("%w: environment value for %q contains NUL", ErrInvalidCommand, key)
 		}
 	}
+	if interfaceIsNil(c.Stdin) {
+		return fmt.Errorf("%w: stdin", ErrNilDependency)
+	}
+	if interfaceIsNil(c.Stdout) {
+		return fmt.Errorf("%w: stdout", ErrNilDependency)
+	}
+	if interfaceIsNil(c.Stderr) {
+		return fmt.Errorf("%w: stderr", ErrNilDependency)
+	}
 	return nil
 }
 
@@ -63,4 +73,16 @@ func containsByte(value string, target byte) bool {
 		}
 	}
 	return false
+}
+
+func interfaceIsNil(value any) bool {
+	if value == nil {
+		return false
+	}
+	switch reflected := reflect.ValueOf(value); reflected.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return reflected.IsNil()
+	default:
+		return false
+	}
 }

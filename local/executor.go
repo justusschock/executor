@@ -72,7 +72,10 @@ func buildEnvironment(inherited []string, overrides map[string]string, caseInsen
 			environment = append(environment, entry)
 		}
 	}
-	for _, key := range keys {
+	for index, key := range keys {
+		if caseInsensitive && environmentKeyOverridden(key, keys[index+1:], true) {
+			continue
+		}
 		environment = append(environment, key+"="+overrides[key])
 	}
 	return environment
