@@ -60,13 +60,15 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	command := Command{
-		Path:   "tool",
-		Args:   []string{"original-argument"},
-		Dir:    "/work",
-		Env:    map[string]string{"KEY": "original-environment"},
-		Stdin:  stdin,
-		Stdout: stdout,
-		Stderr: stderr,
+		Path:           "tool",
+		Args:           []string{"original-argument"},
+		Dir:            "/work",
+		Env:            map[string]string{"KEY": "original-environment"},
+		Stdin:          stdin,
+		Stdout:         stdout,
+		Stderr:         stderr,
+		MaxStdoutBytes: 10,
+		MaxStderrBytes: 20,
 	}
 	wantProcess := &remoteProcess{}
 	wantErr := errors.New("starter result")
@@ -103,6 +105,9 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	if forwarded.Stdin != stdin || forwarded.Stdout != stdout || forwarded.Stderr != stderr {
 		t.Fatal("Start() did not preserve stream references")
 	}
+	if forwarded.MaxStdoutBytes != 10 || forwarded.MaxStderrBytes != 20 {
+		t.Fatalf("Start() did not preserve capture limits: %#v", forwarded)
+	}
 
 	command.Args[0] = "caller-mutation"
 	command.Env["KEY"] = "caller-mutation"
@@ -112,7 +117,13 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 }
 
 func TestRemoteRunStartsAndWaitsExactlyOnce(t *testing.T) {
-	wantResult := Result{ExitCode: 7, Stdout: []byte("out"), Stderr: []byte("err")}
+	wantResult := Result{
+		ExitCode:        7,
+		Stdout:          []byte("out"),
+		Stderr:          []byte("err"),
+		StdoutTruncated: true,
+		StderrTruncated: true,
+	}
 	wantErr := errors.New("wait result")
 	ctx := context.WithValue(context.Background(), remoteContextKey{}, "value")
 

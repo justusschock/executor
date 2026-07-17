@@ -97,6 +97,54 @@ func TestRunStreamsAndCaptures(t *testing.T) {
 	}
 }
 
+func TestRunBoundsCaptureWithoutTruncatingDestinations(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command := helperCommand(t, "success", &stdout, &stderr)
+	command.MaxStdoutBytes = 2
+	command.MaxStderrBytes = 1
+
+	result, err := New().Run(context.Background(), command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(result.Stdout), "ou"; got != want {
+		t.Fatalf("captured stdout = %q, want %q", got, want)
+	}
+	if got, want := string(result.Stderr), "e"; got != want {
+		t.Fatalf("captured stderr = %q, want %q", got, want)
+	}
+	if !result.StdoutTruncated || !result.StderrTruncated {
+		t.Fatalf("truncation flags = %t/%t, want true/true", result.StdoutTruncated, result.StderrTruncated)
+	}
+	if got, want := stdout.String(), "out\n"; got != want {
+		t.Fatalf("streamed stdout = %q, want %q", got, want)
+	}
+	if got, want := stderr.String(), "err\n"; got != want {
+		t.Fatalf("streamed stderr = %q, want %q", got, want)
+	}
+}
+
+func TestRunDoesNotReportExactLimitAsTruncated(t *testing.T) {
+	t.Parallel()
+
+	command := helperCommand(t, "success", nil, nil)
+	command.MaxStdoutBytes = 4
+	command.MaxStderrBytes = 4
+	result, err := New().Run(context.Background(), command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(result.Stdout) != "out\n" || string(result.Stderr) != "err\n" {
+		t.Fatalf("captured output = %q/%q", result.Stdout, result.Stderr)
+	}
+	if result.StdoutTruncated || result.StderrTruncated {
+		t.Fatalf("truncation flags = %t/%t, want false/false", result.StdoutTruncated, result.StderrTruncated)
+	}
+}
+
 func TestRunReturnsPopulatedExitError(t *testing.T) {
 	t.Parallel()
 

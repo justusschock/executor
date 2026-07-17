@@ -12,13 +12,15 @@ func TestCommandCloneCopiesMutableFields(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	command := Command{
-		Path:   "tool",
-		Args:   []string{"one"},
-		Dir:    "/work",
-		Env:    map[string]string{"KEY": "value"},
-		Stdin:  stdin,
-		Stdout: stdout,
-		Stderr: stderr,
+		Path:           "tool",
+		Args:           []string{"one"},
+		Dir:            "/work",
+		Env:            map[string]string{"KEY": "value"},
+		Stdin:          stdin,
+		Stdout:         stdout,
+		Stderr:         stderr,
+		MaxStdoutBytes: 5,
+		MaxStderrBytes: 6,
 	}
 
 	clone := command.Clone()
@@ -28,7 +30,7 @@ func TestCommandCloneCopiesMutableFields(t *testing.T) {
 	if command.Args[0] != "one" || command.Env["KEY"] != "value" {
 		t.Fatalf("source mutated: %+v", command)
 	}
-	if clone.Path != command.Path || clone.Dir != command.Dir {
+	if clone.Path != command.Path || clone.Dir != command.Dir || clone.MaxStdoutBytes != command.MaxStdoutBytes || clone.MaxStderrBytes != command.MaxStderrBytes {
 		t.Fatalf("immutable fields changed: clone=%+v source=%+v", clone, command)
 	}
 	if clone.Stdin != stdin || clone.Stdout != stdout || clone.Stderr != stderr {
@@ -89,6 +91,8 @@ func TestCommandValidateRejectsInvalidFields(t *testing.T) {
 		{name: "equals in environment key", command: Command{Path: "tool", Env: map[string]string{"BAD=KEY": "value"}}},
 		{name: "NUL environment key", command: Command{Path: "tool", Env: map[string]string{"BAD\x00KEY": "value"}}},
 		{name: "NUL environment value", command: Command{Path: "tool", Env: map[string]string{"KEY": "bad\x00value"}}},
+		{name: "negative stdout capture limit", command: Command{Path: "tool", MaxStdoutBytes: -1}},
+		{name: "negative stderr capture limit", command: Command{Path: "tool", MaxStderrBytes: -1}},
 	}
 
 	for _, test := range tests {
