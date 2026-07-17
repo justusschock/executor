@@ -142,6 +142,33 @@ func TestStartValidatesAndOwnsCommand(t *testing.T) {
 	}
 }
 
+func TestStartRejectsTypedNilStreamsBeforeStarting(t *testing.T) {
+	var stream *nilSafeStream
+	tests := []struct {
+		name string
+		set  func(*executor.Command)
+	}{
+		{name: "stdin", set: func(command *executor.Command) { command.Stdin = stream }},
+		{name: "stdout", set: func(command *executor.Command) { command.Stdout = stream }},
+		{name: "stderr", set: func(command *executor.Command) { command.Stderr = stream }},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			command := helperCommand(t, "success", nil, nil)
+			test.set(&command)
+			process, err := New().Start(context.Background(), command)
+			if err == nil {
+				_, _ = waitForProcess(t, process)
+				t.Fatalf("Start() error = nil, want %v", executor.ErrNilDependency)
+			}
+			if !errors.Is(err, executor.ErrNilDependency) {
+				t.Fatalf("Start() error = %v, want %v", err, executor.ErrNilDependency)
+			}
+		})
+	}
+}
+
 func TestRunUsesDirectoryAndStdin(t *testing.T) {
 	t.Parallel()
 
@@ -189,6 +216,19 @@ func TestBuildEnvironmentSortsOverridesAndReplacesPlatformKeys(t *testing.T) {
 	caseInsensitive := buildEnvironment(inherited, overrides, true)
 	if want := []string{"KEEP=value", "=C:=drive", "A=new", "B=second", "PATH=new"}; !reflect.DeepEqual(caseInsensitive, want) {
 		t.Fatalf("case-insensitive environment = %#v, want %#v", caseInsensitive, want)
+	}
+}
+
+func TestBuildEnvironmentCollapsesCaseEquivalentWindowsOverrides(t *testing.T) {
+	t.Parallel()
+
+	got := buildEnvironment(
+		[]string{"Path=old", "KEEP=value"},
+		map[string]string{"PATH": "upper", "Path": "mixed"},
+		true,
+	)
+	if want := []string{"KEEP=value", "Path=mixed"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("case-insensitive environment = %#v, want %#v", got, want)
 	}
 }
 
@@ -470,6 +510,16 @@ func waitForProcess(t *testing.T, process executor.Process) (executor.Result, er
 
 type failingWriter struct {
 	err error
+}
+
+type nilSafeStream struct{}
+
+func (*nilSafeStream) Read([]byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (*nilSafeStream) Write(value []byte) (int, error) {
+	return len(value), nil
 }
 
 func (writer failingWriter) Write(value []byte) (int, error) {

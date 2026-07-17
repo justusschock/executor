@@ -54,6 +54,28 @@ func TestCommandValidateAcceptsValidCommand(t *testing.T) {
 	}
 }
 
+func TestCommandValidateRejectsTypedNilStreams(t *testing.T) {
+	var stream *bytes.Buffer
+	tests := []struct {
+		name string
+		set  func(*Command)
+	}{
+		{name: "stdin", set: func(command *Command) { command.Stdin = stream }},
+		{name: "stdout", set: func(command *Command) { command.Stdout = stream }},
+		{name: "stderr", set: func(command *Command) { command.Stderr = stream }},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			command := Command{Path: "tool"}
+			test.set(&command)
+			if err := command.Validate(); !errors.Is(err, ErrNilDependency) {
+				t.Fatalf("Validate() error = %v, want %v", err, ErrNilDependency)
+			}
+		})
+	}
+}
+
 func TestCommandValidateRejectsInvalidFields(t *testing.T) {
 	tests := []struct {
 		name    string
