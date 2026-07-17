@@ -7,9 +7,15 @@ import (
 	"github.com/justusschock/go-concurrency"
 )
 
-// RunAll executes commands with at most limit calls to runner in flight. It
-// preserves command order in the returned results and owns a clone of every
-// command before execution starts.
+// RunAll executes commands with at most limit concurrent calls to runner and
+// preserves command order in successful results. Runner must support
+// concurrent Run calls. Commands are cloned eagerly, but their stream
+// references remain shallow; callers sharing streams must synchronize them.
+//
+// A command error stops further admission, cancels admitted peers through
+// their contexts, waits for those peers to finish, and returns nil results.
+// Errors from admitted commands are indexed and joined in admission order.
+// An invalid limit is returned as concurrency.ErrInvalidLimit.
 func RunAll(ctx context.Context, runner Executor, commands []Command, limit int) ([]Result, error) {
 	if runner == nil || interfaceIsNil(runner) {
 		return nil, ErrNilDependency

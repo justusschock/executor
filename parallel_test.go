@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -114,6 +115,59 @@ func TestRunAllReturnsIndexedErrorWithoutPartialResults(t *testing.T) {
 	}
 	if got, want := err.Error(), "command 1: command failed"; got != want {
 		t.Fatalf("error = %q, want %q", got, want)
+	}
+}
+
+func TestRunAllCancelsPeersStopsAdmissionAndJoinsIndexedErrors(t *testing.T) {
+	t.Parallel()
+
+	firstErr := errors.New("first failed")
+	secondErr := errors.New("peer cleanup failed")
+	bothStarted := make(chan struct{})
+	siblingCause := make(chan error, 1)
+	var started atomic.Int64
+	runner := &runAllExecutor{run: func(ctx context.Context, command Command) (Result, error) {
+		if started.Add(1) == 2 {
+			close(bothStarted)
+		}
+		switch command.Path {
+		case "first":
+			select {
+			case <-bothStarted:
+			case <-ctx.Done():
+				return Result{}, context.Cause(ctx)
+			}
+			return Result{}, firstErr
+		case "peer":
+			<-ctx.Done()
+			cause := context.Cause(ctx)
+			siblingCause <- cause
+			return Result{}, errors.Join(cause, secondErr)
+		default:
+			return Result{}, errors.New("unadmitted command started")
+		}
+	}}
+
+	results, err := RunAll(
+		context.Background(),
+		runner,
+		[]Command{{Path: "first"}, {Path: "peer"}, {Path: "must-not-start"}},
+		2,
+	)
+	if results != nil {
+		t.Fatalf("results = %#v, want nil", results)
+	}
+	if !errors.Is(err, firstErr) || !errors.Is(err, secondErr) {
+		t.Fatalf("error = %v, want both command failures", err)
+	}
+	if got := receiveError(t, siblingCause); !errors.Is(got, firstErr) {
+		t.Fatalf("peer cancellation cause = %v, want first command failure", got)
+	}
+	if got := started.Load(); got != 2 {
+		t.Fatalf("started commands = %d, want 2", got)
+	}
+	if text := err.Error(); !strings.Contains(text, "command 0:") || !strings.Contains(text, "command 1:") {
+		t.Fatalf("joined error lacks indexed failures: %q", text)
 	}
 }
 

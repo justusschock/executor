@@ -8,6 +8,9 @@ import (
 	"slices"
 )
 
+// Command describes one process invocation. Args and Env are owned by Clone;
+// stream references are shallow and may require caller synchronization when
+// shared across concurrent commands.
 type Command struct {
 	Path   string
 	Args   []string
@@ -18,6 +21,7 @@ type Command struct {
 	Stderr io.Writer
 }
 
+// Validate checks portable command and dependency invariants.
 func (c Command) Validate() error {
 	if c.Path == "" {
 		return fmt.Errorf("%w: empty path", ErrInvalidCommand)
@@ -59,6 +63,7 @@ func (c Command) Validate() error {
 	return nil
 }
 
+// Clone owns Args and Env while preserving the supplied stream references.
 func (c Command) Clone() Command {
 	clone := c
 	clone.Args = slices.Clone(c.Args)
