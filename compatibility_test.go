@@ -3,6 +3,7 @@ package executor
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
@@ -15,16 +16,7 @@ func TestRepositoryCompatibilityPolicy(t *testing.T) {
 			t.Error("go.mod must declare Go 1.22")
 		}
 
-		privateDependency := regexp.MustCompile(`(?m)^\s*(?:require\s+)?(github\.com/justusschock/go-[^\s]+)\s+(v[^\s]+)\s*$`)
-		matches := privateDependency.FindAllStringSubmatch(module, -1)
-		if len(matches) == 0 {
-			t.Fatal("go.mod must contain private github.com/justusschock/go-* dependencies")
-		}
-		for _, match := range matches {
-			if match[2] != "v0.2.0" {
-				t.Errorf("%s version = %s, want v0.2.0", match[1], match[2])
-			}
-		}
+		assertPrivateDependencyVersions(t)
 		if regexp.MustCompile(`(?m)^replace\b`).MatchString(module) {
 			t.Error("go.mod must not contain replace directives")
 		}
@@ -64,6 +56,31 @@ func TestRepositoryCompatibilityPolicy(t *testing.T) {
 			t.Error("README must document Go 1.22 or newer")
 		}
 	})
+}
+
+func assertPrivateDependencyVersions(t *testing.T) {
+	t.Helper()
+	command := exec.Command("go", "list", "-m", "all")
+	command.Env = append(os.Environ(), "GOWORK=off")
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("list module graph: %v", err)
+	}
+
+	privateDependencies := 0
+	for _, line := range strings.Split(string(output), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 || !strings.HasPrefix(fields[0], "github.com/justusschock/go-") {
+			continue
+		}
+		privateDependencies++
+		if fields[1] != "v0.2.0" {
+			t.Errorf("%s resolved version = %s, want v0.2.0", fields[0], fields[1])
+		}
+	}
+	if privateDependencies == 0 {
+		t.Fatal("module graph must contain private github.com/justusschock/go-* dependencies")
+	}
 }
 
 func readRepositoryFile(t *testing.T, path string) string {
