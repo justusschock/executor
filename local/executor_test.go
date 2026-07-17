@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -71,6 +72,7 @@ func TestExecutorHelper(t *testing.T) {
 	default:
 		os.Exit(9)
 	}
+	os.Exit(0)
 }
 
 func TestRunStreamsAndCaptures(t *testing.T) {
@@ -145,14 +147,18 @@ func TestRunUsesDirectoryAndStdin(t *testing.T) {
 
 	t.Run("directory", func(t *testing.T) {
 		directory := t.TempDir()
+		resolvedDirectory, err := filepath.EvalSymlinks(directory)
+		if err != nil {
+			t.Fatal(err)
+		}
 		command := helperCommand(t, "cwd", nil, nil)
 		command.Dir = directory
 		result, err := New().Run(context.Background(), command)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := string(result.Stdout); got != directory {
-			t.Fatalf("working directory = %q, want %q", got, directory)
+		if got := string(result.Stdout); got != resolvedDirectory {
+			t.Fatalf("working directory = %q, want %q", got, resolvedDirectory)
 		}
 	})
 
