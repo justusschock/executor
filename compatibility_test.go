@@ -42,7 +42,8 @@ func TestRepositoryCompatibilityPolicy(t *testing.T) {
 			"go test -race ./...",
 			"go vet ./...",
 			"go mod verify",
-			"go mod tidy -diff",
+			"go mod tidy",
+			"git diff --exit-code -- go.mod go.sum",
 		} {
 			if !strings.Contains(workflow, required) {
 				t.Errorf("CI workflow must contain %q", required)
