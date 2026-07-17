@@ -10,11 +10,12 @@ sandbox, or durable process manager.
 ## Contracts
 
 - `Command` describes a path, arguments, working directory, environment
-  overrides, and optional standard streams. `Validate` checks portable input
-  invariants, and `Clone` copies `Args` and `Env` while retaining stream
-  references.
+  overrides, optional standard streams, and independent stdout/stderr capture
+  limits. `Validate` checks portable input invariants, and `Clone` copies
+  `Args` and `Env` while retaining stream references.
 - `Result` contains the exit code, start and finish times, and captured stdout
-  and stderr.
+  and stderr. Truncation flags distinguish complete output from a retained
+  prefix.
 - `Executor` exposes `Run` and `Start`; `Process` exposes repeatable `Wait`,
   `Signal`, `Kill`, and lifecycle-reference `Export` operations.
 - `local.Executor` implements `Executor` with `os/exec`.
@@ -70,10 +71,12 @@ import (
 
 func main() {
 	result, err := local.New().Run(context.Background(), executor.Command{
-		Path:   "go",
-		Args:   []string{"version"},
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Path:           "go",
+		Args:           []string{"version"},
+		Stdout:         os.Stdout,
+		Stderr:         os.Stderr,
+		MaxStdoutBytes: 1 << 20,
+		MaxStderrBytes: 1 << 20,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -86,6 +89,13 @@ func main() {
 are configured. The repository's portable, compile-checked examples use the
 current test executable and live in
 [`local/example_test.go`](local/example_test.go).
+
+`MaxStdoutBytes` and `MaxStderrBytes` limit only the bytes retained in the
+result. A zero value preserves the compatibility behavior of retaining all
+output. A positive limit retains that stream's prefix, continues draining the
+child, forwards all bytes to its configured writer, and sets the corresponding
+`Result.StdoutTruncated` or `Result.StderrTruncated` flag when bytes were
+omitted. Negative limits are invalid.
 
 ## Start and control a process
 
