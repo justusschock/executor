@@ -16,6 +16,7 @@ func TestCommandCloneCopiesMutableFields(t *testing.T) {
 		Args:           []string{"one"},
 		Dir:            "/work",
 		Env:            map[string]string{"KEY": "value"},
+		ClearEnv:       true,
 		Stdin:          stdin,
 		Stdout:         stdout,
 		Stderr:         stderr,
@@ -30,7 +31,7 @@ func TestCommandCloneCopiesMutableFields(t *testing.T) {
 	if command.Args[0] != "one" || command.Env["KEY"] != "value" {
 		t.Fatalf("source mutated: %+v", command)
 	}
-	if clone.Path != command.Path || clone.Dir != command.Dir || clone.MaxStdoutBytes != command.MaxStdoutBytes || clone.MaxStderrBytes != command.MaxStderrBytes {
+	if clone.Path != command.Path || clone.Dir != command.Dir || clone.ClearEnv != command.ClearEnv || clone.MaxStdoutBytes != command.MaxStdoutBytes || clone.MaxStderrBytes != command.MaxStderrBytes {
 		t.Fatalf("immutable fields changed: clone=%+v source=%+v", clone, command)
 	}
 	if clone.Stdin != stdin || clone.Stdout != stdout || clone.Stderr != stderr {

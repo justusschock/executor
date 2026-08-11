@@ -53,6 +53,8 @@ func TestExecutorHelper(t *testing.T) {
 		fmt.Fprint(os.Stdout, directory)
 	case "inspect":
 		fmt.Fprintf(os.Stdout, "%s/%s", os.Args[len(os.Args)-1], os.Getenv("OWNED_VALUE"))
+	case "environment":
+		fmt.Fprintf(os.Stdout, "%s/%s", os.Getenv("EXECUTOR_INHERITED_VALUE"), os.Getenv("EXECUTOR_EXPLICIT_VALUE"))
 	case "flood":
 		var writers sync.WaitGroup
 		writers.Add(2)
@@ -72,6 +74,23 @@ func TestExecutorHelper(t *testing.T) {
 	default:
 		os.Exit(9)
 	}
+	os.Exit(0)
+}
+
+func TestExecutorEmptyEnvironmentHelper(t *testing.T) {
+	if len(os.Args) == 0 || os.Args[len(os.Args)-1] != "executor-empty-environment-helper" {
+		return
+	}
+
+	environment := os.Environ()
+	hasSystemRoot := false
+	for _, entry := range environment {
+		key, _, _ := strings.Cut(entry, "=")
+		if strings.EqualFold(key, "SYSTEMROOT") {
+			hasSystemRoot = true
+		}
+	}
+	fmt.Fprintf(os.Stdout, "%d/%t", len(environment), hasSystemRoot)
 	os.Exit(0)
 }
 
@@ -250,6 +269,60 @@ func TestRunUsesDirectoryAndStdin(t *testing.T) {
 	})
 }
 
+func TestRunEnvironmentInheritance(t *testing.T) {
+	t.Setenv("EXECUTOR_INHERITED_VALUE", "parent-environment")
+
+	tests := []struct {
+		name     string
+		clearEnv bool
+		want     string
+	}{
+		{name: "default inherits", want: "parent-environment/command-environment"},
+		{name: "clear excludes inherited", clearEnv: true, want: "/command-environment"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			command := helperCommand(t, "environment", nil, nil)
+			command.ClearEnv = test.clearEnv
+			command.Env["EXECUTOR_EXPLICIT_VALUE"] = "command-environment"
+
+			result, err := New().Run(context.Background(), command)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := string(result.Stdout); got != test.want {
+				t.Fatalf("environment = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestRunClearEnvironmentAllowsEmptyExplicitEnvironment(t *testing.T) {
+	binary, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := New().Run(context.Background(), executor.Command{
+		Path:     binary,
+		Args:     []string{"-test.run=^TestExecutorEmptyEnvironmentHelper$", "--", "executor-empty-environment-helper"},
+		Env:      map[string]string{},
+		ClearEnv: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "0/false"
+	if runtime.GOOS == "windows" {
+		// os/exec injects SYSTEMROOT when it is missing, even when Cmd.Env is
+		// otherwise empty.
+		want = "1/true"
+	}
+	if got := string(result.Stdout); got != want {
+		t.Fatalf("child environment summary = %q, want %q", got, want)
+	}
+}
+
 func TestBuildEnvironmentSortsOverridesAndReplacesPlatformKeys(t *testing.T) {
 	t.Parallel()
 
@@ -277,6 +350,25 @@ func TestBuildEnvironmentCollapsesCaseEquivalentWindowsOverrides(t *testing.T) {
 	)
 	if want := []string{"KEEP=value", "Path=mixed"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("case-insensitive environment = %#v, want %#v", got, want)
+	}
+}
+
+func TestBuildEnvironmentWithoutInheritanceSortsAndFoldsOverrides(t *testing.T) {
+	t.Parallel()
+
+	caseSensitive := buildEnvironment(nil, map[string]string{"B": "second", "A": "first"}, false)
+	if want := []string{"A=first", "B=second"}; !reflect.DeepEqual(caseSensitive, want) {
+		t.Fatalf("case-sensitive environment = %#v, want %#v", caseSensitive, want)
+	}
+
+	caseInsensitive := buildEnvironment(nil, map[string]string{"PATH": "upper", "Path": "mixed"}, true)
+	if want := []string{"Path=mixed"}; !reflect.DeepEqual(caseInsensitive, want) {
+		t.Fatalf("case-insensitive environment = %#v, want %#v", caseInsensitive, want)
+	}
+
+	empty := buildEnvironment(nil, map[string]string{}, false)
+	if empty == nil || len(empty) != 0 {
+		t.Fatalf("empty environment = %#v, want non-nil empty slice", empty)
 	}
 }
 

@@ -64,6 +64,7 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 		Args:           []string{"original-argument"},
 		Dir:            "/work",
 		Env:            map[string]string{"KEY": "original-environment"},
+		ClearEnv:       true,
 		Stdin:          stdin,
 		Stdout:         stdout,
 		Stderr:         stderr,
@@ -104,6 +105,9 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	}
 	if forwarded.Stdin != stdin || forwarded.Stdout != stdout || forwarded.Stderr != stderr {
 		t.Fatal("Start() did not preserve stream references")
+	}
+	if !forwarded.ClearEnv {
+		t.Fatal("Start() did not preserve ClearEnv")
 	}
 	if forwarded.MaxStdoutBytes != 10 || forwarded.MaxStderrBytes != 20 {
 		t.Fatalf("Start() did not preserve capture limits: %#v", forwarded)

@@ -10,9 +10,11 @@ sandbox, or durable process manager.
 ## Contracts
 
 - `Command` describes a path, arguments, working directory, environment
-  overrides, optional standard streams, and independent stdout/stderr capture
-  limits. `Validate` checks portable input invariants, and `Clone` copies
-  `Args` and `Env` while retaining stream references.
+  behavior, optional standard streams, and independent stdout/stderr capture
+  limits. `Env` overrides inherited values by default; `ClearEnv` prevents the
+  executor from supplying inherited values. `Validate` checks portable input
+  invariants, and `Clone` copies `Args` and `Env` while retaining stream
+  references.
 - `Result` contains the exit code, start and finish times, and captured stdout
   and stderr. Truncation flags distinguish complete output from a retained
   prefix.
@@ -52,9 +54,10 @@ existing GitHub SSH setup works as well.
 
 ## Run a local command
 
-The local executor inherits the current environment, applies `Command.Env`
-overrides, honors `Dir` and `Stdin`, and always captures stdout and stderr.
-Configured output writers receive the same data while the command runs.
+By default, the local executor inherits the current environment and applies
+`Command.Env` overrides. It honors `Dir` and `Stdin`, and always captures stdout
+and stderr. Configured output writers receive the same data while the command
+runs.
 
 ```go
 package main
@@ -84,6 +87,19 @@ func main() {
 	fmt.Printf("exit code: %d\n", result.ExitCode)
 }
 ```
+
+Set `Command.ClearEnv` to run without inherited environment values. In that
+mode, `go-executor` supplies only the entries in `Command.Env`; a nil or empty
+map produces a non-nil empty `os/exec.Cmd.Env`, which disables normal parent
+environment inheritance. The zero value, `false`, preserves the default
+inheritance behavior.
+
+The underlying `os/exec` package may still add values required by the platform.
+In particular, on Windows it adds `SYSTEMROOT` when that key is missing and is
+not explicitly set to an empty string. Callers are responsible for supplying
+every other platform variable the child needs. `ClearEnv` controls the child
+environment only; executable path lookup still follows `os/exec` lookup rules
+before the child starts.
 
 `Result.Stdout` and `Result.Stderr` still contain the output when live writers
 are configured. The repository's portable, compile-checked examples use the
