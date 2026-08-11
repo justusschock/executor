@@ -12,13 +12,17 @@ import (
 // stream references are shallow and may require caller synchronization when
 // shared across concurrent commands.
 type Command struct {
-	Path   string
-	Args   []string
-	Dir    string
-	Env    map[string]string
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
+	Path string
+	Args []string
+	Dir  string
+	Env  map[string]string
+	// ClearEnv prevents executors from supplying the parent environment. Env
+	// entries are still supplied explicitly, and the underlying platform may
+	// add critical values. The zero value preserves environment inheritance.
+	ClearEnv bool
+	Stdin    io.Reader
+	Stdout   io.Writer
+	Stderr   io.Writer
 	// MaxStdoutBytes and MaxStderrBytes bound retained output independently.
 	// Zero keeps all output; configured stream writers still receive every byte.
 	MaxStdoutBytes int64

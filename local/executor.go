@@ -33,7 +33,11 @@ func (executorInstance *Executor) Start(ctx context.Context, command executor.Co
 
 	cmd := exec.CommandContext(ctx, ownedCommand.Path, ownedCommand.Args...)
 	cmd.Dir = ownedCommand.Dir
-	cmd.Env = buildEnvironment(os.Environ(), ownedCommand.Env, runtime.GOOS == "windows")
+	var inheritedEnvironment []string
+	if !ownedCommand.ClearEnv {
+		inheritedEnvironment = os.Environ()
+	}
+	cmd.Env = buildEnvironment(inheritedEnvironment, ownedCommand.Env, runtime.GOOS == "windows")
 	cmd.Stdin = ownedCommand.Stdin
 
 	stdout := newLockedBuffer(ownedCommand.MaxStdoutBytes)
