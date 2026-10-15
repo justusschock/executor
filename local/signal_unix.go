@@ -11,18 +11,24 @@ import (
 )
 
 func signalByName(process *os.Process, name string) error {
-	var signal syscall.Signal
-	switch name {
-	case "TERM":
-		signal = syscall.SIGTERM
-	case "KILL":
-		signal = syscall.SIGKILL
-	case "INT":
-		signal = syscall.SIGINT
-	case "HUP":
-		signal = syscall.SIGHUP
-	default:
-		return fmt.Errorf("%w: %q", executor.ErrInvalidSignal, name)
+	signal, err := signalNumber(name)
+	if err != nil {
+		return err
 	}
 	return process.Signal(signal)
+}
+
+func signalNumber(name string) (syscall.Signal, error) {
+	switch name {
+	case "TERM":
+		return syscall.SIGTERM, nil
+	case "KILL":
+		return syscall.SIGKILL, nil
+	case "INT":
+		return syscall.SIGINT, nil
+	case "HUP":
+		return syscall.SIGHUP, nil
+	default:
+		return 0, fmt.Errorf("%w: %q", executor.ErrInvalidSignal, name)
+	}
 }

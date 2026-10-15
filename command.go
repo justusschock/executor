@@ -6,7 +6,12 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"time"
 )
+
+// DefaultKillGrace is the termination grace period selected by Shell and
+// ShellWith.
+const DefaultKillGrace = 10 * time.Second
 
 // Command describes one process invocation. Args and Env are owned by Clone;
 // stream references are shallow and may require caller synchronization when
@@ -27,6 +32,16 @@ type Command struct {
 	// Zero keeps all output; configured stream writers still receive every byte.
 	MaxStdoutBytes int64
 	MaxStderrBytes int64
+	// ProcessGroup starts the command as the leader of a new process group
+	// (Unix) or process group and Job Object (Windows). Signal, Kill, and
+	// start-context cancellation then target the whole group, including
+	// grandchildren. The zero value targets only the direct child.
+	ProcessGroup bool
+	// KillGrace is the delay between the terminate request and the forced
+	// kill when the start context ends. Zero kills immediately, which is the
+	// compatibility behavior. Platforms without a terminate signal kill
+	// immediately regardless of the grace period.
+	KillGrace time.Duration
 }
 
 // Validate checks portable command and dependency invariants.
@@ -64,6 +79,9 @@ func (c Command) Validate() error {
 	}
 	if c.MaxStderrBytes < 0 {
 		return fmt.Errorf("%w: negative stderr capture limit", ErrInvalidCommand)
+	}
+	if c.KillGrace < 0 {
+		return fmt.Errorf("%w: negative kill grace period", ErrInvalidCommand)
 	}
 	if interfaceIsNil(c.Stdin) {
 		return fmt.Errorf("%w: stdin", ErrNilDependency)

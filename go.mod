@@ -1,6 +1,6 @@
 module github.com/justusschock/go-executor
 
-go 1.22
+go 1.25
 
 require github.com/justusschock/go-lifecycle v0.2.0
 

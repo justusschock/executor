@@ -17,6 +17,24 @@ type Result struct {
 	// StdoutTruncated and StderrTruncated report output omitted by capture limits.
 	StdoutTruncated bool
 	StderrTruncated bool
+	// Usage reports resource consumption when the executor can observe it.
+	// Zero fields mean the value is unknown, not that nothing was consumed.
+	Usage Usage
+}
+
+// Usage is a best-effort resource accounting snapshot for one finished
+// process. Unix-like local executions report the child's rusage, which also
+// includes descendants the child waited for, such as programs run by a shell.
+type Usage struct {
+	// MaxRSSBytes is the peak resident set size in bytes.
+	MaxRSSBytes int64
+	// UserCPU and SystemCPU are the CPU time spent in user and kernel mode.
+	UserCPU   time.Duration
+	SystemCPU time.Duration
+	// ReadBytes and WriteBytes approximate storage I/O. They are zero when the
+	// platform does not report byte-granular block I/O.
+	ReadBytes  int64
+	WriteBytes int64
 }
 
 type ExitError struct {

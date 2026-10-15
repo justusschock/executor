@@ -19,27 +19,45 @@ type process struct {
 	startedAt time.Time
 	stdout    *lockedBuffer
 	stderr    *lockedBuffer
-	wait      *concurrency.Future[executor.Result]
+	// group is non-nil when command.ProcessGroup is set. It is assigned before
+	// ready closes, and cancel waits for ready before reading it.
+	group  *processGroup
+	ready  chan struct{}
+	exited chan struct{}
+	wait   *concurrency.Future[executor.Result]
 }
 
 func newProcess(
-	startContext context.Context,
 	command executor.Command,
 	cmd *exec.Cmd,
-	startedAt time.Time,
 	stdout *lockedBuffer,
 	stderr *lockedBuffer,
 ) *process {
-	processInstance := &process{
-		command:   command,
-		cmd:       cmd,
-		startedAt: startedAt,
-		stdout:    stdout,
-		stderr:    stderr,
+	return &process{
+		command: command,
+		cmd:     cmd,
+		stdout:  stdout,
+		stderr:  stderr,
+		ready:   make(chan struct{}),
+		exited:  make(chan struct{}),
 	}
+}
+
+// started records a successfully started child and begins reaping it.
+func (processInstance *process) started(startContext context.Context, startedAt time.Time) {
+	processInstance.startedAt = startedAt
+	if processInstance.command.ProcessGroup {
+		processInstance.group = newProcessGroup(processInstance.cmd.Process, processInstance.exited)
+	}
+	close(processInstance.ready)
 	processInstance.wait = concurrency.Go(context.Background(), func(context.Context) (executor.Result, error) {
 		waitErr := processInstance.cmd.Wait()
-		result := processInstance.result(time.Now())
+		finishedAt := time.Now()
+		close(processInstance.exited)
+		if processInstance.group != nil {
+			processInstance.group.close()
+		}
+		result := processInstance.result(finishedAt)
 		if waitErr == nil {
 			return result, nil
 		}
@@ -49,7 +67,23 @@ func newProcess(
 		}
 		return result, &executor.ExitError{Result: cloneResult(result), Cause: cause}
 	})
-	return processInstance
+}
+
+// abandon releases a cancel call blocked on a child that failed to start.
+func (processInstance *process) abandon() {
+	close(processInstance.ready)
+	close(processInstance.exited)
+}
+
+// cancel is the exec.Cmd.Cancel hook invoked when the start context ends.
+func (processInstance *process) cancel() error {
+	<-processInstance.ready
+	return escalation{
+		grace:     processInstance.command.KillGrace,
+		terminate: func() error { return processInstance.signal("TERM") },
+		kill:      processInstance.kill,
+		exited:    processInstance.exited,
+	}.run()
 }
 
 func (processInstance *process) result(finishedAt time.Time) executor.Result {
@@ -67,6 +101,7 @@ func (processInstance *process) result(finishedAt time.Time) executor.Result {
 		Stderr:          stderr,
 		StdoutTruncated: stdoutTruncated,
 		StderrTruncated: stderrTruncated,
+		Usage:           usageFromState(processInstance.cmd.ProcessState),
 	}
 }
 
@@ -85,12 +120,26 @@ func (processInstance *process) Signal(ctx context.Context, name string) error {
 	if err := context.Cause(ctx); err != nil {
 		return err
 	}
-	return signalByName(processInstance.cmd.Process, name)
+	return processInstance.signal(name)
 }
 
 func (processInstance *process) Kill(ctx context.Context) error {
 	if err := context.Cause(ctx); err != nil {
 		return err
+	}
+	return processInstance.kill()
+}
+
+func (processInstance *process) signal(name string) error {
+	if processInstance.group != nil {
+		return processInstance.group.signal(name)
+	}
+	return signalByName(processInstance.cmd.Process, name)
+}
+
+func (processInstance *process) kill() error {
+	if processInstance.group != nil {
+		return processInstance.group.kill()
 	}
 	return processInstance.cmd.Process.Kill()
 }

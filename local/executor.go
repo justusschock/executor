@@ -24,7 +24,9 @@ func New() *Executor {
 }
 
 // Start validates and starts command. The supplied context owns process
-// cancellation for the lifetime of the child.
+// cancellation for the lifetime of the child: when it ends, the child (or its
+// process group when Command.ProcessGroup is set) is killed, or first asked to
+// terminate when Command.KillGrace is positive.
 func (executorInstance *Executor) Start(ctx context.Context, command executor.Command) (executor.Process, error) {
 	ownedCommand := command.Clone()
 	if err := ownedCommand.Validate(); err != nil {
@@ -45,12 +47,17 @@ func (executorInstance *Executor) Start(ctx context.Context, command executor.Co
 	destinationMu := &sync.Mutex{}
 	cmd.Stdout = writeTo(stdout, ownedCommand.Stdout, destinationMu)
 	cmd.Stderr = writeTo(stderr, ownedCommand.Stderr, destinationMu)
+	configureCommand(cmd, ownedCommand)
 
+	processInstance := newProcess(ownedCommand, cmd, stdout, stderr)
+	cmd.Cancel = processInstance.cancel
 	startedAt := time.Now()
 	if err := cmd.Start(); err != nil {
+		processInstance.abandon()
 		return nil, err
 	}
-	return newProcess(ctx, ownedCommand, cmd, startedAt, stdout, stderr), nil
+	processInstance.started(ctx, startedAt)
+	return processInstance, nil
 }
 
 // Run starts command and waits until it has been reaped. The start context may

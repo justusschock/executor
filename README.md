@@ -4,8 +4,9 @@
 `os/exec` implementation, bounded ordered batch execution, and a thin adapter
 for remote starters.
 
-The module executes programs directly; it does not add a shell, transport, PTY,
-sandbox, or durable process manager.
+The module executes programs directly. A shell is involved only when a caller
+opts in through `Shell` or `ShellWith`; the module does not add a transport,
+PTY, sandbox, or durable process manager.
 
 ## Contracts
 
@@ -14,14 +15,18 @@ sandbox, or durable process manager.
   limits. `Env` overrides inherited values by default; `ClearEnv` prevents the
   executor from supplying inherited values. `Validate` checks portable input
   invariants, and `Clone` copies `Args` and `Env` while retaining stream
-  references.
-- `Result` contains the exit code, start and finish times, and captured stdout
-  and stderr. Truncation flags distinguish complete output from a retained
-  prefix.
+  references. `ProcessGroup` and `KillGrace` control how far process control
+  reaches and how cancellation escalates.
+- `Shell` and `ShellWith` build commands that run a script through a shell.
+- `Result` contains the exit code, start and finish times, captured stdout and
+  stderr, and best-effort resource `Usage`. Truncation flags distinguish
+  complete output from a retained prefix.
 - `Executor` exposes `Run` and `Start`; `Process` exposes repeatable `Wait`,
   `Signal`, `Kill`, and lifecycle-reference `Export` operations.
 - `local.Executor` implements `Executor` with `os/exec`.
 - `RunAll` adds bounded concurrent execution without changing result order.
+- `NewPrefixWriter` labels streamed output lines without interleaving lines
+  from concurrent commands.
 - `Remote` turns any `Starter` implementation into an `Executor`; it does not
   implement a network transport itself.
 
@@ -135,8 +140,9 @@ result, err := process.Wait(waitContext)
 ```
 
 - For `local.Executor`, the context passed to `Start` owns the child lifetime.
-  Canceling it terminates the direct child. `Run` still waits for the child to
-  be reaped before it returns.
+  Canceling it terminates the direct child, or its process group when
+  `Command.ProcessGroup` is set. `Run` still waits for the child to be reaped
+  before it returns.
 - A context passed to `Wait` controls only that call. A canceled or timed-out
   wait does not terminate the process; a later `Wait` can return the final
   result. `Wait` is repeatable and local waits return independently owned
@@ -145,8 +151,87 @@ result, err := process.Wait(waitContext)
   `KILL`, `INT`, and `HUP`; Windows supports `KILL`. `Kill` sends the platform's
   unconditional kill operation. Both methods reject an already-canceled
   operation context before signaling.
-- Process control targets the direct child. The local implementation does not
-  manage Unix process groups or Windows Job Objects.
+- Without `Command.ProcessGroup`, process control targets the direct child
+  only; see the next section for whole-tree control.
+
+## Run shell scripts and control process groups
+
+`Shell` runs a script through `/bin/sh -c` on Unix-like systems
+(`/system/bin/sh -c` on Android) and `cmd.exe /d /s /c` on Windows.
+`ShellWith` selects another interpreter; each zero `ShellOptions` field falls
+back to `DefaultShell` independently:
+
+```go
+train := executor.Shell("python train.py --lr 0.1")
+train.Dir = "pipelines/model"
+
+strict := executor.ShellWith(executor.ShellOptions{
+	Path: "bash",
+	Args: []string{"-euo", "pipefail", "-c"},
+}, "make data | tee data.log")
+```
+
+The script is interpreted by the shell, so never interpolate untrusted input
+into it. On Windows, the local executor passes a `cmd.exe ... /s /c` script
+verbatim inside one pair of quotes instead of applying the standard argument
+escaping that `cmd.exe` does not understand.
+
+Shell commands set `ProcessGroup: true` and `KillGrace: DefaultKillGrace`
+(10 seconds), because scripts usually start further programs. Any command can
+set these fields; their zero values preserve the direct-child behavior.
+
+- `ProcessGroup` starts the child as the leader of a new process group
+  (`Setpgid` on Unix). On Windows, it uses `CREATE_NEW_PROCESS_GROUP` and
+  assigns the child to a Job Object, falling back to `taskkill /T /F` when the
+  job cannot be created or assigned. `Signal`, `Kill`, and start-context
+  cancellation then reach grandchildren, such as programs run by `sh -c`.
+  After the group has been reaped, they return `os.ErrProcessDone`. A Unix
+  group child is not in the terminal's foreground group, so do not pass a
+  terminal as its stdin.
+- `KillGrace` controls start-context cancellation. Zero kills immediately. A
+  positive value sends `TERM` first and sends `KILL` if the process has not
+  been reaped when the grace period ends. Windows has no `TERM`, so it kills
+  immediately. Negative values are invalid.
+
+In both modes, `Run` and `Wait` still expose the start-context cancellation
+through `errors.Is`.
+
+## Record resource usage
+
+`Result.Usage` is populated for successful runs and for `ExitError` results.
+Zero fields mean that the platform did not report a value:
+
+- `UserCPU` and `SystemCPU` come from the process state on every platform.
+- `MaxRSSBytes` is the peak resident set size from `rusage` on Unix-like
+  systems, normalized from kilobytes (Linux and BSDs) or bytes (macOS). Windows
+  reports zero.
+- `ReadBytes` and `WriteBytes` are reported on Linux and Android, where
+  `ru_inblock` and `ru_oublock` count 512-byte units of storage I/O. Reads served
+  from the page cache are not included. Other platforms report zero.
+
+On Unix-like systems, `rusage` includes descendants that the child waited for,
+so a shell's usage includes the programs it ran in the foreground.
+
+## Label streamed output
+
+`NewPrefixWriter` wraps a destination writer and prefixes every line. All
+prefix writers that share a destination serialize their writes, so concurrent
+commands can stream into one terminal without splitting lines:
+
+```go
+stdout := executor.NewPrefixWriter(os.Stdout, "[train] ")
+defer stdout.Close()
+
+command := executor.Shell("python train.py")
+command.Stdout = stdout
+command.Stderr = stdout
+```
+
+Each destination write contains only complete lines. A partial line longer
+than `MaxPrefixLineBytes` (64 KiB) is emitted in completed chunks, and `Close`
+writes any remaining partial line with a trailing newline. Close each prefix
+writer after its command finishes to flush output and release the shared
+destination lock.
 
 ## Run commands concurrently
 
@@ -252,12 +337,12 @@ The neutral root contracts and remote adapter contain no OS process code. The
 
 Other targets, including Plan 9, JavaScript, and WASI, are not supported by the
 local implementation. There is no implicit shell expansion, PTY, privilege
-escalation, process-tree supervision, SSH/Kubernetes transport, sandbox, or
-durable execution in this module.
+escalation, SSH/Kubernetes transport, sandbox, or durable execution in this
+module. Process-tree control is limited to opt-in process groups.
 
 ## Development
 
-Go 1.22 or newer is required. Useful focused checks are:
+Go 1.25 or newer is required. Useful focused checks are:
 
 ```bash
 go test -race ./local

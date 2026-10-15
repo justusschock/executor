@@ -12,8 +12,8 @@ import (
 func TestRepositoryCompatibilityPolicy(t *testing.T) {
 	t.Run("module", func(t *testing.T) {
 		module := readRepositoryFile(t, "go.mod")
-		if !regexp.MustCompile(`(?m)^go 1\.22$`).MatchString(module) {
-			t.Error("go.mod must declare Go 1.22")
+		if !regexp.MustCompile(`(?m)^go 1\.25$`).MatchString(module) {
+			t.Error("go.mod must declare Go 1.25")
 		}
 
 		assertPrivateDependencyVersions(t)
@@ -30,9 +30,6 @@ func TestRepositoryCompatibilityPolicy(t *testing.T) {
 	t.Run("continuous integration", func(t *testing.T) {
 		workflow := readRepositoryFile(t, ".github/workflows/ci.yml")
 		for _, required := range []string{
-			"'1.22.x'",
-			"'1.23.x'",
-			"'1.24.x'",
 			"'1.25.x'",
 			"'1.26.x'",
 			"actions/checkout@v6",
@@ -53,8 +50,8 @@ func TestRepositoryCompatibilityPolicy(t *testing.T) {
 
 	t.Run("readme", func(t *testing.T) {
 		readme := readRepositoryFile(t, "README.md")
-		if !strings.Contains(readme, "Go 1.22 or newer is required") {
-			t.Error("README must document Go 1.22 or newer")
+		if !strings.Contains(readme, "Go 1.25 or newer is required") {
+			t.Error("README must document Go 1.25 or newer")
 		}
 	})
 }

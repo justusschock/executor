@@ -28,15 +28,15 @@ func TestExecutorHelper(t *testing.T) {
 
 	switch os.Getenv("EXECUTOR_HELPER_MODE") {
 	case "success":
-		fmt.Fprintln(os.Stdout, "out")
-		fmt.Fprintln(os.Stderr, "err")
+		_, _ = fmt.Fprintln(os.Stdout, "out")
+		_, _ = fmt.Fprintln(os.Stderr, "err")
 	case "exit7":
-		fmt.Fprintln(os.Stdout, "out7")
-		fmt.Fprintln(os.Stderr, "err7")
+		_, _ = fmt.Fprintln(os.Stdout, "out7")
+		_, _ = fmt.Fprintln(os.Stderr, "err7")
 		os.Exit(7)
 	case "delay":
 		time.Sleep(150 * time.Millisecond)
-		fmt.Fprintln(os.Stdout, "delayed")
+		_, _ = fmt.Fprintln(os.Stdout, "delayed")
 	case "block":
 		for {
 			time.Sleep(time.Hour)
@@ -50,31 +50,53 @@ func TestExecutorHelper(t *testing.T) {
 		if err != nil {
 			os.Exit(8)
 		}
-		fmt.Fprint(os.Stdout, directory)
+		_, _ = fmt.Fprint(os.Stdout, directory)
 	case "inspect":
-		fmt.Fprintf(os.Stdout, "%s/%s", os.Args[len(os.Args)-1], os.Getenv("OWNED_VALUE"))
+		_, _ = fmt.Fprintf(os.Stdout, "%s/%s", os.Args[len(os.Args)-1], os.Getenv("OWNED_VALUE"))
 	case "environment":
-		fmt.Fprintf(os.Stdout, "%s/%s", os.Getenv("EXECUTOR_INHERITED_VALUE"), os.Getenv("EXECUTOR_EXPLICIT_VALUE"))
+		_, _ = fmt.Fprintf(os.Stdout, "%s/%s", os.Getenv("EXECUTOR_INHERITED_VALUE"), os.Getenv("EXECUTOR_EXPLICIT_VALUE"))
 	case "flood":
 		var writers sync.WaitGroup
 		writers.Add(2)
 		go func() {
 			defer writers.Done()
 			for range 128 {
-				fmt.Fprintln(os.Stdout, strings.Repeat("o", 64))
+				_, _ = fmt.Fprintln(os.Stdout, strings.Repeat("o", 64))
 			}
 		}()
 		go func() {
 			defer writers.Done()
 			for range 128 {
-				fmt.Fprintln(os.Stderr, strings.Repeat("e", 64))
+				_, _ = fmt.Fprintln(os.Stderr, strings.Repeat("e", 64))
 			}
 		}()
 		writers.Wait()
+	case "usage", "usage-exit":
+		consumeResources()
+		if os.Getenv("EXECUTOR_HELPER_MODE") == "usage-exit" {
+			os.Exit(3)
+		}
 	default:
 		os.Exit(9)
 	}
 	os.Exit(0)
+}
+
+const usageTestBytes = 64 << 20
+
+var usageSink []byte
+
+// consumeResources touches usageTestBytes of memory and spins the CPU so that
+// rusage reports clearly nonzero values.
+func consumeResources() {
+	usageSink = make([]byte, usageTestBytes)
+	for index := 0; index < len(usageSink); index += 4096 {
+		usageSink[index] = 1
+	}
+	deadline := time.Now().Add(100 * time.Millisecond)
+	for counter := 0; time.Now().Before(deadline); counter++ {
+		usageSink[counter%len(usageSink)]++
+	}
 }
 
 func TestExecutorEmptyEnvironmentHelper(t *testing.T) {
@@ -90,7 +112,7 @@ func TestExecutorEmptyEnvironmentHelper(t *testing.T) {
 			hasSystemRoot = true
 		}
 	}
-	fmt.Fprintf(os.Stdout, "%d/%t", len(environment), hasSystemRoot)
+	_, _ = fmt.Fprintf(os.Stdout, "%d/%t", len(environment), hasSystemRoot)
 	os.Exit(0)
 }
 
@@ -180,6 +202,44 @@ func TestRunReturnsPopulatedExitError(t *testing.T) {
 	}
 	if exit.Cause == nil {
 		t.Fatal("ExitError.Cause is nil for nonzero exit")
+	}
+}
+
+func TestRunReportsResourceUsage(t *testing.T) {
+	t.Parallel()
+
+	for _, mode := range []string{"usage", "usage-exit"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := New().Run(context.Background(), helperCommand(t, mode, nil, nil))
+			if mode == "usage-exit" {
+				var exit *executor.ExitError
+				if !errors.As(err, &exit) || result.ExitCode != 3 {
+					t.Fatalf("Run() = (%+v, %v), want exit 3", result, err)
+				}
+				if exit.Result.Usage != result.Usage {
+					t.Fatalf("ExitError usage = %+v, want %+v", exit.Result.Usage, result.Usage)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+
+			usage := result.Usage
+			if usage.UserCPU+usage.SystemCPU <= 0 {
+				t.Fatalf("CPU usage = %+v, want positive", usage)
+			}
+			if usage.ReadBytes < 0 || usage.WriteBytes < 0 {
+				t.Fatalf("I/O usage = %+v, want non-negative", usage)
+			}
+			if runtime.GOOS == "windows" {
+				return
+			}
+			// Bounds also detect a missing or doubled kilobyte normalization.
+			if usage.MaxRSSBytes < usageTestBytes || usage.MaxRSSBytes > 1<<40 {
+				t.Fatalf("MaxRSSBytes = %d, want at least %d bytes", usage.MaxRSSBytes, usageTestBytes)
+			}
+		})
 	}
 }
 
