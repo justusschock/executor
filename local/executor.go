@@ -15,7 +15,8 @@ import (
 
 var _ executor.Executor = (*Executor)(nil)
 
-// Executor starts commands on the local machine.
+// Executor starts commands on the local machine. The zero value is ready to
+// use, and an Executor is safe for concurrent use.
 type Executor struct{}
 
 // New returns a local command executor.

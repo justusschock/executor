@@ -37,11 +37,18 @@ type Usage struct {
 	WriteBytes int64
 }
 
+// ExitError reports a process that exited with a non-zero code or whose wait
+// failed, for example because a configured output writer returned an error or
+// the start context ended. Result holds the same snapshot the call returned.
+// Cause is reachable through errors.Is and errors.As; for local executions it
+// is the os/exec wait error, joined with the start context's cause when that
+// context ended.
 type ExitError struct {
 	Result Result
 	Cause  error
 }
 
+// Error reports the exit code and, when present, the cause.
 func (e *ExitError) Error() string {
 	if e.Cause == nil {
 		return fmt.Sprintf("executor: process exited with code %d", e.Result.ExitCode)
@@ -49,6 +56,7 @@ func (e *ExitError) Error() string {
 	return fmt.Sprintf("executor: process exited with code %d: %v", e.Result.ExitCode, e.Cause)
 }
 
+// Unwrap returns Cause.
 func (e *ExitError) Unwrap() error {
 	return e.Cause
 }
