@@ -91,7 +91,7 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	}
 
 	process, err := remote.Start(ctx, command)
-	if process != wantProcess || err != wantErr {
+	if process != wantProcess || err != wantErr { //nolint:errorlint // Remote must forward the exact error value, not a wrapper.
 		t.Fatalf("Start() = (%#v, %v), want (%#v, %v)", process, err, wantProcess, wantErr)
 	}
 	if calls != 1 {
@@ -153,7 +153,7 @@ func TestRemoteRunStartsAndWaitsExactlyOnce(t *testing.T) {
 	}
 
 	result, err := remote.Run(ctx, Command{Path: "tool"})
-	if err != wantErr {
+	if err != wantErr { //nolint:errorlint // Remote must forward the exact error value, not a wrapper.
 		t.Fatalf("Run() error = %v, want exact error %v", err, wantErr)
 	}
 	if !reflect.DeepEqual(result, wantResult) {
@@ -187,7 +187,7 @@ func TestRemoteRunReturnsStartErrorWithoutWaiting(t *testing.T) {
 	}
 
 	result, err := remote.Run(context.Background(), Command{Path: "tool"})
-	if err != wantErr {
+	if err != wantErr { //nolint:errorlint // Remote must forward the exact error value, not a wrapper.
 		t.Fatalf("Run() error = %v, want exact error %v", err, wantErr)
 	}
 	if !reflect.DeepEqual(result, Result{}) {
@@ -207,7 +207,7 @@ func TestRemoteAdoptionIsUnsupported(t *testing.T) {
 	}
 
 	process, err := remote.Adopt(context.Background(), handoff.Artifact{})
-	if err != ErrUnsupportedAdoption {
+	if err != ErrUnsupportedAdoption { //nolint:errorlint // Adopt returns the sentinel itself, not a wrapper.
 		t.Fatalf("Adopt() error = %v, want exact error %v", err, ErrUnsupportedAdoption)
 	}
 	if process != nil {

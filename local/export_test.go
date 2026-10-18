@@ -99,7 +99,7 @@ func TestExportRejectsCanceledContext(t *testing.T) {
 	cancel(wantErr)
 
 	artifact, err := (&process{}).Export(ctx)
-	if err != wantErr {
+	if err != wantErr { //nolint:errorlint // Export returns the context cause itself, not a wrapper.
 		t.Fatalf("Export() error = %v, want exact cause %v", err, wantErr)
 	}
 	if !reflect.ValueOf(artifact).IsZero() {

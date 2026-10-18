@@ -1,0 +1,15 @@
+version: "2"
+
+linters:
+  # The standard set (errcheck, govet, ineffassign, staticcheck, unused) plus
+  # linters for error wrapping, spelling and HTTP response bodies.
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - misspell
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

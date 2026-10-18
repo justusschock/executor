@@ -108,7 +108,9 @@ func (processInstance *process) result(finishedAt time.Time) executor.Result {
 func (processInstance *process) Wait(ctx context.Context) (executor.Result, error) {
 	result, err := processInstance.wait.Await(ctx)
 	result = cloneResult(result)
-	if exit, ok := err.(*executor.ExitError); ok {
+	// Await returns the reaper's *ExitError unwrapped; only that exact value is
+	// cloned, so a wait-context cause is never rewritten.
+	if exit, ok := err.(*executor.ExitError); ok { //nolint:errorlint // exact identity, see above
 		clonedExit := *exit
 		clonedExit.Result = cloneResult(exit.Result)
 		return result, &clonedExit
