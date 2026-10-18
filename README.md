@@ -1,135 +1,127 @@
 # go-executor
 
-`go-executor` provides command and process contracts, a local
-`os/exec` implementation, bounded ordered batch execution, and a thin adapter
-for remote starters.
+`go-executor` is a Go library for running external commands with precise,
+tested semantics: portable command and process contracts, a local `os/exec`
+implementation with bounded output capture, process-group control and
+graceful cancellation, ordered parallel batches, line-prefixed output
+streaming, and a thin adapter for remote transports. It is for Go developers
+who build tools, pipeline runners, job agents and CLIs that start other
+programs and need to stop them reliably and report what happened.
 
-The module executes programs directly. A shell is involved only when a caller
-opts in through `Shell` or `ShellWith`; the module does not add a transport,
-PTY, sandbox, or durable process manager.
+Programs run directly. A shell is involved only when you ask for one through
+`Shell` or `ShellWith`; the module adds no transport, PTY, sandbox or durable
+process manager.
 
-## Contracts
+## Features
 
-- `Command` describes a path, arguments, working directory, environment
-  behavior, optional standard streams, and independent stdout/stderr capture
-  limits. `Env` overrides inherited values by default; `ClearEnv` prevents the
-  executor from supplying inherited values. `Validate` checks portable input
-  invariants, and `Clone` copies `Args` and `Env` while retaining stream
-  references. `ProcessGroup` and `KillGrace` control how far process control
-  reaches and how cancellation escalates.
-- `Shell` and `ShellWith` build commands that run a script through a shell.
-- `Result` contains the exit code, start and finish times, captured stdout and
-  stderr, and best-effort resource `Usage`. Truncation flags distinguish
-  complete output from a retained prefix.
-- `Executor` exposes `Run` and `Start`; `Process` exposes repeatable `Wait`,
-  `Signal`, `Kill`, and lifecycle-reference `Export` operations.
-- `local.Executor` implements `Executor` with `os/exec`.
-- `RunAll` adds bounded concurrent execution without changing result order.
-- `NewPrefixWriter` labels streamed output lines without interleaving lines
-  from concurrent commands.
-- `Remote` turns any `Starter` implementation into an `Executor`; it does not
-  implement a network transport itself.
+- **Command contract**: `Command` describes path, arguments, working
+  directory, environment (inherited with overrides, or cleared with
+  `ClearEnv`), optional standard streams and per-stream capture limits.
+  `Validate` checks portable invariants; `Clone` copies `Args` and `Env`.
+- **Local execution**: `local.New()` returns an `Executor` that runs commands
+  with `os/exec`, streams output to your writers while capturing it, and
+  reports exit code, timing and resource `Usage`.
+- **Start, wait and control**: `Start` returns a `Process` with repeatable
+  `Wait`, `Signal`, `Kill` and `Export`. The start context owns the process
+  lifetime; wait contexts bound only the wait.
+- **Process groups and graceful stop**: `ProcessGroup` makes signals and
+  cancellation reach grandchildren; `KillGrace` sends `TERM` first and `KILL`
+  after a grace period.
+- **Shell commands**: `Shell` and `ShellWith` run scripts through the
+  platform shell or an interpreter of your choice, in their own process group.
+- **Bounded capture**: `MaxStdoutBytes`/`MaxStderrBytes` cap retained output
+  while writers still receive every byte.
+- **Ordered batches**: `RunAll` runs commands with bounded concurrency,
+  returns results in input order and stops on the first failure.
+- **Prefixed output**: `NewPrefixWriter` labels lines and never interleaves
+  lines from concurrent commands that share a destination.
+- **Remote adapters**: `NewRemote` turns any one-method `Starter` into an
+  `Executor`.
+- Errors that keep the result: non-zero exits return the populated `Result`
+  and an `*ExitError`. No logging; safe for concurrent use.
 
-Module path: `github.com/justusschock/go-executor`
-
-## Install the private module
-
-You need repository access for this module and its private dependencies. Use a
-Git credential helper or SSH agent; do not place access tokens in Git URLs,
-`go env`, source files, or shell history. For example, GitHub CLI can use its
-browser login and configure Git's credential helper:
-
-```bash
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git --hostname github.com
-```
-
-Tell Go to fetch the private module family directly and skip the public
-checksum database for it:
+## Installation
 
 ```bash
-go env -w GOPRIVATE='github.com/justusschock/*'
-go env -w GONOSUMDB='github.com/justusschock/*'
 go get github.com/justusschock/go-executor@latest
 ```
 
-`GOPRIVATE` already supplies the default private-module behavior;
-`GONOSUMDB` is set explicitly here so the checksum policy remains clear. An
-existing GitHub SSH setup works as well.
+Requires Go 1.25 or newer. Import the contracts and the local
+implementation as:
 
-## Run a local command
+```go
+import (
+	executor "github.com/justusschock/go-executor"
+	"github.com/justusschock/go-executor/local"
+)
+```
 
-By default, the local executor inherits the current environment and applies
-`Command.Env` overrides. It honors `Dir` and `Stdin`, and always captures stdout
-and stderr. Configured output writers receive the same data while the command
-runs.
+## Quick start
+
+Run a shell command locally and inspect the result. This is the package
+[`Example`](example_test.go), so it is compiled and checked by `go test`:
 
 ```go
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
-	"os"
+	"strings"
 
 	executor "github.com/justusschock/go-executor"
 	"github.com/justusschock/go-executor/local"
 )
 
 func main() {
-	result, err := local.New().Run(context.Background(), executor.Command{
-		Path:           "go",
-		Args:           []string{"version"},
-		Stdout:         os.Stdout,
-		Stderr:         os.Stderr,
-		MaxStdoutBytes: 1 << 20,
-		MaxStderrBytes: 1 << 20,
-	})
+	result, err := local.New().Run(context.Background(), executor.Shell("echo hello"))
 	if err != nil {
+		var exit *executor.ExitError
+		if errors.As(err, &exit) {
+			fmt.Println("exit code:", exit.Result.ExitCode)
+		}
 		log.Fatal(err)
 	}
-	fmt.Printf("exit code: %d\n", result.ExitCode)
+	fmt.Println(strings.TrimSpace(string(result.Stdout)), result.ExitCode) // hello 0
 }
 ```
 
-Set `Command.ClearEnv` to run without inherited environment values. In that
-mode, `go-executor` supplies only the entries in `Command.Env`; a nil or empty
-map produces a non-nil empty `os/exec.Cmd.Env`, which disables normal parent
-environment inheritance. The zero value, `false`, preserves the default
-inheritance behavior.
+[`example_test.go`](example_test.go) also has `ExampleRunAll`,
+`ExampleNewPrefixWriter` and `ExampleNewRemote`;
+[`local/example_test.go`](local/example_test.go) shows `Executor.Run`.
 
-The underlying `os/exec` package may still add values required by the platform.
-In particular, on Windows it adds `SYSTEMROOT` when that key is missing and is
-not explicitly set to an empty string. Callers are responsible for supplying
-every other platform variable the child needs. `ClearEnv` controls the child
-environment only; executable path lookup still follows `os/exec` lookup rules
-before the child starts.
+### Run a program directly
 
-`Result.Stdout` and `Result.Stderr` still contain the output when live writers
-are configured. The repository's portable, compile-checked examples use the
-current test executable and live in
-[`local/example_test.go`](local/example_test.go).
+```go
+result, err := local.New().Run(ctx, executor.Command{
+	Path:           "go",
+	Args:           []string{"version"},
+	Stdout:         os.Stdout, // streamed live and captured in result.Stdout
+	Stderr:         os.Stderr,
+	MaxStdoutBytes: 1 << 20, // retain at most 1 MiB; os.Stdout still gets everything
+	MaxStderrBytes: 1 << 20,
+})
+```
 
-`MaxStdoutBytes` and `MaxStderrBytes` limit only the bytes retained in the
-result. A zero value preserves the compatibility behavior of retaining all
-output. A positive limit retains that stream's prefix, continues draining the
-child, forwards all bytes to its configured writer, and sets the corresponding
-`Result.StdoutTruncated` or `Result.StderrTruncated` flag when bytes were
-omitted. Negative limits are invalid.
+By default the child inherits the current environment with `Command.Env`
+entries overriding it. With `ClearEnv: true`, only `Command.Env` is supplied;
+`os/exec` may still add values the platform requires (on Windows,
+`SYSTEMROOT`). `ClearEnv` does not change how `Path` is looked up.
 
-## Start and control a process
+A positive capture limit retains that stream's prefix, keeps draining the
+child, forwards every byte to the configured writer, and sets
+`Result.StdoutTruncated` or `Result.StderrTruncated` when bytes were dropped.
+Zero retains everything; negative limits are invalid.
 
-`Start` separates process lifetime from an individual wait:
+### Start and control a process
 
 ```go
 processContext, cancelProcess := context.WithCancel(context.Background())
 defer cancelProcess()
 
-process, err := local.New().Start(processContext, executor.Command{
-	Path: "go",
-	Args: []string{"version"},
-})
+process, err := local.New().Start(processContext, executor.Command{Path: "go", Args: []string{"version"}})
 if err != nil {
 	return err
 }
@@ -139,27 +131,22 @@ defer cancelWait()
 result, err := process.Wait(waitContext)
 ```
 
-- For `local.Executor`, the context passed to `Start` owns the child lifetime.
-  Canceling it terminates the direct child, or its process group when
-  `Command.ProcessGroup` is set. `Run` still waits for the child to be reaped
-  before it returns.
-- A context passed to `Wait` controls only that call. A canceled or timed-out
-  wait does not terminate the process; a later `Wait` can return the final
-  result. `Wait` is repeatable and local waits return independently owned
-  output slices.
-- `Signal` accepts exact uppercase names. Unix-like builds support `TERM`,
-  `KILL`, `INT`, and `HUP`; Windows supports `KILL`. `Kill` sends the platform's
-  unconditional kill operation. Both methods reject an already-canceled
-  operation context before signaling.
-- Without `Command.ProcessGroup`, process control targets the direct child
-  only; see the next section for whole-tree control.
+- The context passed to `Start` owns the child's lifetime. Cancelling it
+  stops the child (or its process group); `Run` still waits until the child
+  has been reaped.
+- A context passed to `Wait` bounds only that call. A timed-out `Wait` leaves
+  the process running, and a later `Wait` returns the final result. Every
+  `Wait` returns independently owned output.
+- `Signal` takes exact uppercase names: `TERM`, `KILL`, `INT` and `HUP` on
+  Unix-like systems, `KILL` on Windows. `Kill` stops the process
+  unconditionally.
 
-## Run shell scripts and control process groups
+### Shell scripts and process groups
 
 `Shell` runs a script through `/bin/sh -c` on Unix-like systems
 (`/system/bin/sh -c` on Android) and `cmd.exe /d /s /c` on Windows.
 `ShellWith` selects another interpreter; each zero `ShellOptions` field falls
-back to `DefaultShell` independently:
+back to `DefaultShell`:
 
 ```go
 train := executor.Shell("python train.py --lr 0.1")
@@ -171,52 +158,39 @@ strict := executor.ShellWith(executor.ShellOptions{
 }, "make data | tee data.log")
 ```
 
-The script is interpreted by the shell, so never interpolate untrusted input
-into it. On Windows, the local executor passes a `cmd.exe ... /s /c` script
-verbatim inside one pair of quotes instead of applying the standard argument
-escaping that `cmd.exe` does not understand.
-
-Shell commands set `ProcessGroup: true` and `KillGrace: DefaultKillGrace`
-(10 seconds), because scripts usually start further programs. Any command can
-set these fields; their zero values preserve the direct-child behavior.
+The shell interprets the script, so never interpolate untrusted input into
+it. Shell commands set `ProcessGroup: true` and
+`KillGrace: DefaultKillGrace` (10 seconds); any command can set these fields.
 
 - `ProcessGroup` starts the child as the leader of a new process group
-  (`Setpgid` on Unix). On Windows, it uses `CREATE_NEW_PROCESS_GROUP` and
-  assigns the child to a Job Object, falling back to `taskkill /T /F` when the
-  job cannot be created or assigned. `Signal`, `Kill`, and start-context
-  cancellation then reach grandchildren, such as programs run by `sh -c`.
-  After the group has been reaped, they return `os.ErrProcessDone`. A Unix
-  group child is not in the terminal's foreground group, so do not pass a
-  terminal as its stdin.
-- `KillGrace` controls start-context cancellation. Zero kills immediately. A
-  positive value sends `TERM` first and sends `KILL` if the process has not
-  been reaped when the grace period ends. Windows has no `TERM`, so it kills
-  immediately. Negative values are invalid.
+  (`Setpgid` on Unix). On Windows it uses `CREATE_NEW_PROCESS_GROUP` and a Job
+  Object, falling back to `taskkill /T /F`. `Signal`, `Kill` and start-context
+  cancellation then reach grandchildren; after the group has been reaped they
+  return `os.ErrProcessDone`. Do not pass a terminal as stdin to a Unix group
+  child: it is not in the terminal's foreground group.
+- `KillGrace` controls start-context cancellation. Zero kills immediately; a
+  positive value sends `TERM` and then `KILL` if the process has not been
+  reaped when the grace period ends. Windows has no `TERM` and kills
+  immediately.
 
-In both modes, `Run` and `Wait` still expose the start-context cancellation
-through `errors.Is`.
+### Run commands concurrently
 
-## Record resource usage
+```go
+commands := []executor.Command{
+	{Path: "go", Args: []string{"env", "GOOS"}},
+	{Path: "go", Args: []string{"env", "GOARCH"}},
+}
+results, err := executor.RunAll(ctx, local.New(), commands, 2)
+```
 
-`Result.Usage` is populated for successful runs and for `ExitError` results.
-Zero fields mean that the platform did not report a value:
+`RunAll` makes at most `limit` concurrent `Run` calls and returns results in
+input order. On the first failure it stops admitting commands, cancels the
+running ones through their contexts, waits for them and returns no results;
+failures are labelled with their command index and joined. A non-positive
+limit returns `concurrency.ErrInvalidLimit` from
+[go-concurrency](https://github.com/justusschock/go-concurrency).
 
-- `UserCPU` and `SystemCPU` come from the process state on every platform.
-- `MaxRSSBytes` is the peak resident set size from `rusage` on Unix-like
-  systems, normalized from kilobytes (Linux and BSDs) or bytes (macOS). Windows
-  reports zero.
-- `ReadBytes` and `WriteBytes` are reported on Linux and Android, where
-  `ru_inblock` and `ru_oublock` count 512-byte units of storage I/O. Reads served
-  from the page cache are not included. Other platforms report zero.
-
-On Unix-like systems, `rusage` includes descendants that the child waited for,
-so a shell's usage includes the programs it ran in the foreground.
-
-## Label streamed output
-
-`NewPrefixWriter` wraps a destination writer and prefixes every line. All
-prefix writers that share a destination serialize their writes, so concurrent
-commands can stream into one terminal without splitting lines:
+### Label streamed output
 
 ```go
 stdout := executor.NewPrefixWriter(os.Stdout, "[train] ")
@@ -227,136 +201,105 @@ command.Stdout = stdout
 command.Stderr = stdout
 ```
 
-Each destination write contains only complete lines. A partial line longer
-than `MaxPrefixLineBytes` (64 KiB) is emitted in completed chunks, and `Close`
-writes any remaining partial line with a trailing newline. Close each prefix
-writer after its command finishes to flush output and release the shared
+Prefix writers that share a destination serialize their writes, and each
+destination write contains only complete lines. A partial line longer than
+`MaxPrefixLineBytes` (64 KiB) is emitted in chunks. Close each writer after
+its command finishes to flush the last partial line and release the shared
 destination lock.
 
-## Run commands concurrently
+### Resource usage
 
-`RunAll` invokes at most `limit` concurrent `Run` calls. Successful results are
-returned in input order even when commands finish in a different order:
+`Result.Usage` is filled for successful runs and `ExitError` results; zero
+means "not reported":
 
-```go
-commands := []executor.Command{
-	{Path: "go", Args: []string{"env", "GOOS"}},
-	{Path: "go", Args: []string{"env", "GOARCH"}},
-}
+- `UserCPU` and `SystemCPU` on every platform.
+- `MaxRSSBytes` (peak resident set size) on Unix-like systems.
+- `ReadBytes` and `WriteBytes` (storage I/O, excluding page-cache hits) on
+  Linux and Android.
 
-results, err := executor.RunAll(context.Background(), local.New(), commands, 2)
-if err != nil {
-	return err
-}
-for index, result := range results {
-	fmt.Printf("command %d: %s", index, result.Stdout)
-}
-```
+On Unix-like systems the values include descendants the child waited for, so
+a shell's usage includes the programs it ran in the foreground.
 
-The supplied executor must support concurrent calls. Commands are cloned
-eagerly, but stream references remain shallow; synchronize a writer or reader
-that is shared by multiple commands. On the first command failure, `RunAll`
-stops further admission, cancels admitted peers through their contexts, waits
-for them, and returns no partial results. Admitted failures are wrapped with
-their command indexes and joined in admission order. A non-positive limit
-returns `concurrency.ErrInvalidLimit` from `go-concurrency`.
+### Remote adapters and process references
 
-## Adapt a remote starter
-
-Remote transports implement the small root interface:
+A transport implements one method and gets a full `Executor`:
 
 ```go
 type Starter interface {
 	Start(context.Context, executor.Command) (executor.Process, error)
 }
+
+remote, err := executor.NewRemote(myStarter)
 ```
 
-Pass that implementation to `executor.NewRemote`. `Remote.Start` clones and
-validates the command before forwarding it, and `Remote.Run` performs one
-`Start` followed by one `Wait` with the same context. Transport, authentication,
-session, and custody semantics remain the adapter's responsibility.
+`Remote.Start` clones and validates the command before forwarding it;
+`Remote.Run` is one `Start` and one `Wait` with the same context. Transport,
+authentication and custody are the adapter's responsibility.
 
-## Export process references
+`Process.Export` returns a `handoff.Artifact` from
+[go-lifecycle](https://github.com/justusschock/go-lifecycle) with media type
+`application/vnd.justusschock.process-reference+json`, version `1`, and only
+the JSON fields `pid`, `path` and `started_at`. Arguments, environment and
+streams are never included. Export does not transfer custody, and a
+reference can become stale. `Remote.Adopt` returns `ErrUnsupportedAdoption`.
 
-`Process.Export` exports a live local process as a `handoff.Artifact` with media
-type `application/vnd.justusschock.process-reference+json`, version `1`, and
-only these JSON fields:
+## Packages
 
-- `pid`
-- `path`
-- `started_at` in RFC3339Nano UTC form
+| Package | Import path | Purpose |
+|---|---|---|
+| `executor` | `github.com/justusschock/go-executor` | Contracts (`Command`, `Executor`, `Process`, `Result`, `ExitError`), shells, `RunAll`, `NewPrefixWriter`, `Remote` |
+| `local` | `github.com/justusschock/go-executor/local` | `Executor` implementation for the local machine using `os/exec` |
 
-Arguments, environment values, stdin, and stream references are deliberately
-omitted. Export does not stop the process or transfer its custody: the original
-caller remains responsible for signaling and reaping it. The reference can
-also become stale after export and is not sufficient to prove that a reused PID
-identifies the same process.
+Anything under `internal/` (none today) is not part of the API.
 
-Exporting an unavailable process returns `ErrNotStarted`; exporting one that
-has exited returns `ErrProcessExited`. The core module does not reattach to or
-adopt these references. `Remote.Adopt` always returns
-`ErrUnsupportedAdoption`; a transport capable of real custody transfer belongs
-in a separate adapter.
+## Design and guarantees
 
-## Ownership, cancellation, and errors
+- **Concurrency**: `local.Executor`, its processes and prefix writers are
+  safe for concurrent use; `Remote` is safe when its `Starter` is. `RunAll`
+  requires an executor that supports concurrent `Run` calls. Commands are
+  cloned before execution, but `Stdin`, `Stdout` and `Stderr` remain shared
+  references; synchronize a stream that several commands share.
+- **Errors**: a non-zero exit or wait failure (including a failing output
+  writer) returns both the populated `Result` and an `*executor.ExitError`;
+  use `errors.As` to get it and `errors.Is` to find its cause, including a
+  start-context `context.Canceled` or `context.DeadlineExceeded`. Invalid
+  commands wrap `ErrInvalidCommand`, typed-nil streams wrap
+  `ErrNilDependency`, unsupported signal names wrap `ErrInvalidSignal`.
 
-- `local.Executor.Start`, `Remote.Start`, and `RunAll` copy `Command.Args` and
-  `Command.Env` before execution. `Stdin`, `Stdout`, and `Stderr` are
-  interfaces and remain shared references. Typed-nil stream implementations
-  are rejected with `ErrNilDependency`; plain nil streams are allowed.
-- A non-zero exit or wait failure returns both a populated `Result` and
-  `*executor.ExitError`. Inspect it with `errors.As`; its cause remains visible
-  through `errors.Is`, including a start-context cancellation or deadline.
-- A configured destination-writer failure is a wait failure and may therefore
-  produce an `ExitError` even when the program itself exits with code zero.
-- Command validation errors wrap `ErrInvalidCommand`. Unsupported signal names
-  wrap `ErrInvalidSignal`.
-- When the start context terminates the child, that cancellation or deadline
-  remains discoverable when the process is reaped. Canceling only a `Wait`
-  returns that wait context's cause without changing the process.
+  ```go
+  result, err := local.New().Run(ctx, command)
+  if err != nil {
+  	var exit *executor.ExitError
+  	if errors.As(err, &exit) {
+  		// result and exit.Result both hold the captured outcome.
+  	}
+  	if errors.Is(err, context.DeadlineExceeded) {
+  		// The start context expired and the process was stopped.
+  	}
+  }
+  ```
 
-```go
-result, err := local.New().Run(ctx, command)
-if err != nil {
-	var exit *executor.ExitError
-	if errors.As(err, &exit) {
-		// result and exit.Result both contain the captured process outcome.
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		// The command's start context expired.
-	}
-}
-```
+- **Platforms**: the root package contains no OS process code. `local`
+  supports Windows and `aix`, `android`, `darwin`, `dragonfly`, `freebsd`,
+  `linux`, `netbsd`, `openbsd` and `solaris`. Plan 9, JavaScript and WASI are
+  not supported.
+- **Stability**: the module is `v0.x`. Minor releases may break the API;
+  every break is listed in [CHANGELOG.md](CHANGELOG.md) and backed by an ADR.
 
-## Supported platforms and scope
+## Documentation
 
-The neutral root contracts and remote adapter contain no OS process code. The
-`local` package supports Windows and these Unix-like `GOOS` targets: `aix`,
-`android`, `darwin`, `dragonfly`, `freebsd`, `linux`, `netbsd`, `openbsd`, and
-`solaris`.
+- API reference: [pkg.go.dev/github.com/justusschock/go-executor](https://pkg.go.dev/github.com/justusschock/go-executor)
+- Requirements and design decisions: [docs/README.md](docs/README.md)
+  (PRD and ADRs)
 
-Other targets, including Plan 9, JavaScript, and WASI, are not supported by the
-local implementation. There is no implicit shell expansion, PTY, privilege
-escalation, SSH/Kubernetes transport, sandbox, or durable execution in this
-module. Process-tree control is limited to opt-in process groups.
+## Contributing
 
-## Development
-
-Go 1.25 or newer is required. Useful focused checks are:
-
-```bash
-go test -race ./local
-go test -race -run '^TestRunAll' .
-go test ./local -run '^Example'
-go vet ./...
-go mod verify
-pre-commit run --all-files
-```
-
-Install the repository hooks once with `pre-commit install`. Local
-implementation plans live under `docs/` and are intentionally excluded from
-Git.
+Contributions are welcome through pull requests; nothing is pushed to `main`
+directly. Read [AGENTS.md](AGENTS.md) first: it describes the docs-first
+process, the public API rules and the checks to run before opening a pull
+request.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
