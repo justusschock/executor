@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// FR-EXEC-02
 func TestCommandCloneCopiesMutableFields(t *testing.T) {
 	stdin := strings.NewReader("input")
 	stdout := &bytes.Buffer{}
@@ -41,6 +42,7 @@ func TestCommandCloneCopiesMutableFields(t *testing.T) {
 	}
 }
 
+// FR-EXEC-02
 func TestCommandClonePreservesNilCollections(t *testing.T) {
 	clone := (Command{Path: "tool"}).Clone()
 	if clone.Args != nil || clone.Env != nil {
@@ -48,6 +50,7 @@ func TestCommandClonePreservesNilCollections(t *testing.T) {
 	}
 }
 
+// FR-EXEC-01
 func TestCommandValidateAcceptsValidCommand(t *testing.T) {
 	command := Command{
 		Path: "tool",
@@ -59,6 +62,7 @@ func TestCommandValidateAcceptsValidCommand(t *testing.T) {
 	}
 }
 
+// FR-EXEC-01
 func TestCommandValidateRejectsTypedNilStreams(t *testing.T) {
 	var stream *bytes.Buffer
 	tests := []struct {
@@ -81,6 +85,7 @@ func TestCommandValidateRejectsTypedNilStreams(t *testing.T) {
 	}
 }
 
+// FR-EXEC-01
 func TestCommandValidateRejectsInvalidFields(t *testing.T) {
 	tests := []struct {
 		name    string

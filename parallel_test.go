@@ -30,6 +30,7 @@ func (*runAllExecutor) Start(context.Context, Command) (Process, error) {
 	panic("unexpected Start call")
 }
 
+// FR-EXEC-14
 func TestRunAllPreservesOrderAndBoundsConcurrency(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
@@ -100,6 +101,7 @@ func TestRunAllPreservesOrderAndBoundsConcurrency(t *testing.T) {
 	})
 }
 
+// FR-EXEC-14
 func TestRunAllReturnsIndexedErrorWithoutPartialResults(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
@@ -124,6 +126,7 @@ func TestRunAllReturnsIndexedErrorWithoutPartialResults(t *testing.T) {
 	})
 }
 
+// FR-EXEC-14
 func TestRunAllCancelsPeersStopsAdmissionAndJoinsIndexedErrors(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
@@ -178,6 +181,7 @@ func TestRunAllCancelsPeersStopsAdmissionAndJoinsIndexedErrors(t *testing.T) {
 	})
 }
 
+// FR-EXEC-14
 func TestRunAllOwnsCommandsBeforeExecution(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
@@ -224,6 +228,7 @@ func TestRunAllOwnsCommandsBeforeExecution(t *testing.T) {
 	})
 }
 
+// FR-EXEC-14
 func TestRunAllRejectsInvalidDependenciesAndLimits(t *testing.T) {
 	t.Parallel()
 
@@ -245,6 +250,7 @@ func TestRunAllRejectsInvalidDependenciesAndLimits(t *testing.T) {
 	}
 }
 
+// FR-EXEC-14
 func TestRunAllPropagatesCancellation(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {

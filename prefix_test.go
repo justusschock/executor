@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// FR-EXEC-13
 func TestPrefixWriterBuffersLinesAndFlushesOnClose(t *testing.T) {
 	t.Parallel()
 
@@ -42,6 +43,7 @@ func TestPrefixWriterBuffersLinesAndFlushesOnClose(t *testing.T) {
 	}
 }
 
+// FR-EXEC-13
 func TestPrefixWriterCloseWithoutPendingWritesNothing(t *testing.T) {
 	t.Parallel()
 
@@ -58,6 +60,7 @@ func TestPrefixWriterCloseWithoutPendingWritesNothing(t *testing.T) {
 	}
 }
 
+// FR-EXEC-13
 func TestPrefixWritersSharingDestinationNeverInterleaveLines(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +123,7 @@ func TestPrefixWritersSharingDestinationNeverInterleaveLines(t *testing.T) {
 	assertNoDestinationLocks(t, destination)
 }
 
+// FR-EXEC-13
 func TestPrefixWriterIsSafeForConcurrentWrites(t *testing.T) {
 	t.Parallel()
 
@@ -146,6 +150,7 @@ func TestPrefixWriterIsSafeForConcurrentWrites(t *testing.T) {
 	}
 }
 
+// FR-EXEC-13
 func TestPrefixWriterBoundsPartialLines(t *testing.T) {
 	t.Parallel()
 
@@ -166,6 +171,7 @@ func TestPrefixWriterBoundsPartialLines(t *testing.T) {
 	}
 }
 
+// FR-EXEC-13
 func TestPrefixWriterReportsDestinationErrors(t *testing.T) {
 	t.Parallel()
 
@@ -184,6 +190,7 @@ func TestPrefixWriterReportsDestinationErrors(t *testing.T) {
 	}
 }
 
+// FR-EXEC-13
 func TestPrefixWriterNestsAndAcceptsIncomparableDestinations(t *testing.T) {
 	t.Parallel()
 

@@ -15,6 +15,7 @@ import (
 
 const processReferenceMediaType = "application/vnd.justusschock.process-reference+json"
 
+// FR-EXEC-16
 func TestExportLiveProcessReference(t *testing.T) {
 	command := helperCommand(t, "block", &bytes.Buffer{}, &bytes.Buffer{})
 	command.Args = append(command.Args, "private-argument")
@@ -93,6 +94,7 @@ func TestExportLiveProcessReference(t *testing.T) {
 	finished = true
 }
 
+// FR-EXEC-16
 func TestExportRejectsCanceledContext(t *testing.T) {
 	wantErr := errors.New("stop export")
 	ctx, cancel := context.WithCancelCause(context.Background())
@@ -107,6 +109,7 @@ func TestExportRejectsCanceledContext(t *testing.T) {
 	}
 }
 
+// FR-EXEC-16
 func TestExportRejectsUnavailableProcess(t *testing.T) {
 	artifact, err := (&process{}).Export(context.Background())
 	if !errors.Is(err, executor.ErrNotStarted) {
@@ -117,6 +120,7 @@ func TestExportRejectsUnavailableProcess(t *testing.T) {
 	}
 }
 
+// FR-EXEC-16
 func TestExportRejectsExitedProcess(t *testing.T) {
 	started, err := New().Start(context.Background(), helperCommand(t, "success", nil, nil))
 	if err != nil {

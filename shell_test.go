@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// FR-EXEC-11
 func TestDefaultShellMatchesPlatform(t *testing.T) {
 	t.Parallel()
 
@@ -27,6 +28,7 @@ func TestDefaultShellMatchesPlatform(t *testing.T) {
 	}
 }
 
+// FR-EXEC-11
 func TestShellUsesDefaultShellAndProcessGroup(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +48,7 @@ func TestShellUsesDefaultShellAndProcessGroup(t *testing.T) {
 	}
 }
 
+// FR-EXEC-11
 func TestShellWithFallsBackPerField(t *testing.T) {
 	t.Parallel()
 
@@ -73,6 +76,7 @@ func TestShellWithFallsBackPerField(t *testing.T) {
 	}
 }
 
+// FR-EXEC-11
 func TestShellWithOwnsArguments(t *testing.T) {
 	t.Parallel()
 

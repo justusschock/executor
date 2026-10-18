@@ -10,6 +10,7 @@ import (
 	"github.com/justusschock/go-lifecycle/handoff"
 )
 
+// FR-EXEC-15
 func TestNewRemoteRejectsNilStarter(t *testing.T) {
 	var typedNil *remoteStarter
 	tests := []struct {
@@ -33,6 +34,7 @@ func TestNewRemoteRejectsNilStarter(t *testing.T) {
 	}
 }
 
+// FR-EXEC-15
 func TestRemoteStartValidatesBeforeForwarding(t *testing.T) {
 	calls := 0
 	remote, err := NewRemote(&remoteStarter{start: func(context.Context, Command) (Process, error) {
@@ -55,6 +57,7 @@ func TestRemoteStartValidatesBeforeForwarding(t *testing.T) {
 	}
 }
 
+// FR-EXEC-15
 func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	stdin := bytes.NewBufferString("input")
 	stdout := &bytes.Buffer{}
@@ -120,6 +123,7 @@ func TestRemoteStartForwardsOwnedCommandExactlyOnce(t *testing.T) {
 	}
 }
 
+// FR-EXEC-15
 func TestRemoteRunStartsAndWaitsExactlyOnce(t *testing.T) {
 	wantResult := Result{
 		ExitCode:        7,
@@ -170,6 +174,7 @@ func TestRemoteRunStartsAndWaitsExactlyOnce(t *testing.T) {
 	}
 }
 
+// FR-EXEC-15
 func TestRemoteRunReturnsStartErrorWithoutWaiting(t *testing.T) {
 	wantErr := errors.New("start failed")
 	waitCalls := 0
@@ -198,6 +203,7 @@ func TestRemoteRunReturnsStartErrorWithoutWaiting(t *testing.T) {
 	}
 }
 
+// FR-EXEC-17
 func TestRemoteAdoptionIsUnsupported(t *testing.T) {
 	remote, err := NewRemote(&remoteStarter{start: func(context.Context, Command) (Process, error) {
 		return &remoteProcess{}, nil

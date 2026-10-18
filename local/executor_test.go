@@ -116,6 +116,7 @@ func TestExecutorEmptyEnvironmentHelper(t *testing.T) {
 	os.Exit(0)
 }
 
+// FR-EXEC-03
 func TestRunStreamsAndCaptures(t *testing.T) {
 	t.Parallel()
 
@@ -138,6 +139,7 @@ func TestRunStreamsAndCaptures(t *testing.T) {
 	}
 }
 
+// FR-EXEC-05
 func TestRunBoundsCaptureWithoutTruncatingDestinations(t *testing.T) {
 	t.Parallel()
 
@@ -168,6 +170,7 @@ func TestRunBoundsCaptureWithoutTruncatingDestinations(t *testing.T) {
 	}
 }
 
+// FR-EXEC-05
 func TestRunDoesNotReportExactLimitAsTruncated(t *testing.T) {
 	t.Parallel()
 
@@ -186,6 +189,7 @@ func TestRunDoesNotReportExactLimitAsTruncated(t *testing.T) {
 	}
 }
 
+// FR-EXEC-06
 func TestRunReturnsPopulatedExitError(t *testing.T) {
 	t.Parallel()
 
@@ -205,6 +209,7 @@ func TestRunReturnsPopulatedExitError(t *testing.T) {
 	}
 }
 
+// FR-EXEC-12
 func TestRunReportsResourceUsage(t *testing.T) {
 	t.Parallel()
 
@@ -243,6 +248,7 @@ func TestRunReportsResourceUsage(t *testing.T) {
 	}
 }
 
+// FR-EXEC-01, FR-EXEC-02
 func TestStartValidatesAndOwnsCommand(t *testing.T) {
 	t.Parallel()
 
@@ -269,6 +275,7 @@ func TestStartValidatesAndOwnsCommand(t *testing.T) {
 	}
 }
 
+// FR-EXEC-01
 func TestStartRejectsTypedNilStreamsBeforeStarting(t *testing.T) {
 	var stream *nilSafeStream
 	tests := []struct {
@@ -296,6 +303,7 @@ func TestStartRejectsTypedNilStreamsBeforeStarting(t *testing.T) {
 	}
 }
 
+// FR-EXEC-03
 func TestRunUsesDirectoryAndStdin(t *testing.T) {
 	t.Parallel()
 
@@ -329,6 +337,7 @@ func TestRunUsesDirectoryAndStdin(t *testing.T) {
 	})
 }
 
+// FR-EXEC-04
 func TestRunEnvironmentInheritance(t *testing.T) {
 	t.Setenv("EXECUTOR_INHERITED_VALUE", "parent-environment")
 
@@ -358,6 +367,7 @@ func TestRunEnvironmentInheritance(t *testing.T) {
 	}
 }
 
+// FR-EXEC-04
 func TestRunClearEnvironmentAllowsEmptyExplicitEnvironment(t *testing.T) {
 	binary, err := os.Executable()
 	if err != nil {
@@ -383,6 +393,7 @@ func TestRunClearEnvironmentAllowsEmptyExplicitEnvironment(t *testing.T) {
 	}
 }
 
+// FR-EXEC-04
 func TestBuildEnvironmentSortsOverridesAndReplacesPlatformKeys(t *testing.T) {
 	t.Parallel()
 
@@ -400,6 +411,7 @@ func TestBuildEnvironmentSortsOverridesAndReplacesPlatformKeys(t *testing.T) {
 	}
 }
 
+// FR-EXEC-04
 func TestBuildEnvironmentCollapsesCaseEquivalentWindowsOverrides(t *testing.T) {
 	t.Parallel()
 
@@ -413,6 +425,7 @@ func TestBuildEnvironmentCollapsesCaseEquivalentWindowsOverrides(t *testing.T) {
 	}
 }
 
+// FR-EXEC-04
 func TestBuildEnvironmentWithoutInheritanceSortsAndFoldsOverrides(t *testing.T) {
 	t.Parallel()
 
@@ -432,6 +445,7 @@ func TestBuildEnvironmentWithoutInheritanceSortsAndFoldsOverrides(t *testing.T) 
 	}
 }
 
+// FR-EXEC-07
 func TestWaitIsRepeatableAndReturnsOwnedResults(t *testing.T) {
 	t.Parallel()
 
@@ -465,6 +479,7 @@ func TestWaitIsRepeatableAndReturnsOwnedResults(t *testing.T) {
 	}
 }
 
+// FR-EXEC-07
 func TestExitWaitClonesResultAndExitErrorOutput(t *testing.T) {
 	t.Parallel()
 
@@ -490,6 +505,7 @@ func TestExitWaitClonesResultAndExitErrorOutput(t *testing.T) {
 	}
 }
 
+// FR-EXEC-07
 func TestWaitCancellationDoesNotStopProcess(t *testing.T) {
 	t.Parallel()
 
@@ -512,6 +528,7 @@ func TestWaitCancellationDoesNotStopProcess(t *testing.T) {
 	}
 }
 
+// FR-EXEC-07
 func TestStartAndRunCancellationReturnDiscoverableExitError(t *testing.T) {
 	t.Parallel()
 
@@ -546,6 +563,7 @@ func TestStartAndRunCancellationReturnDiscoverableExitError(t *testing.T) {
 	})
 }
 
+// FR-EXEC-06
 func TestCallerWriterErrorIsWaitErrorAndCaptureRemainsOwned(t *testing.T) {
 	t.Parallel()
 
@@ -572,6 +590,7 @@ func TestCallerWriterErrorIsWaitErrorAndCaptureRemainsOwned(t *testing.T) {
 	}
 }
 
+// FR-EXEC-03
 func TestSharedDestinationWritesAreSerializedAcrossStreams(t *testing.T) {
 	t.Parallel()
 
@@ -591,6 +610,7 @@ func TestSharedDestinationWritesAreSerializedAcrossStreams(t *testing.T) {
 	}
 }
 
+// FR-EXEC-08
 func TestSignalAndKill(t *testing.T) {
 	t.Parallel()
 
@@ -623,6 +643,7 @@ func TestSignalAndKill(t *testing.T) {
 	})
 }
 
+// FR-EXEC-08
 func TestPlatformSignals(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		for _, name := range []string{"TERM", "INT", "HUP"} {

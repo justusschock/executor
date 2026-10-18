@@ -13,6 +13,7 @@ import (
 	executor "github.com/justusschock/go-executor"
 )
 
+// FR-EXEC-10
 func TestEscalationKillsImmediatelyWithoutGrace(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := newEscalationRecorder(nil)
@@ -23,6 +24,7 @@ func TestEscalationKillsImmediatelyWithoutGrace(t *testing.T) {
 	})
 }
 
+// FR-EXEC-10
 func TestEscalationKillsAfterGrace(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := newEscalationRecorder(nil)
@@ -41,6 +43,7 @@ func TestEscalationKillsAfterGrace(t *testing.T) {
 	})
 }
 
+// FR-EXEC-10
 func TestEscalationStopsWhenProcessExitsDuringGrace(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := newEscalationRecorder(nil)
@@ -57,6 +60,7 @@ func TestEscalationStopsWhenProcessExitsDuringGrace(t *testing.T) {
 	})
 }
 
+// FR-EXEC-10
 func TestEscalationKillsImmediatelyWithoutTerminateSignal(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := newEscalationRecorder(fmt.Errorf("%w: %q", executor.ErrInvalidSignal, "TERM"))
@@ -67,6 +71,7 @@ func TestEscalationKillsImmediatelyWithoutTerminateSignal(t *testing.T) {
 	})
 }
 
+// FR-EXEC-10
 func TestEscalationReturnsTerminateFailureWithoutKilling(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := newEscalationRecorder(os.ErrProcessDone)

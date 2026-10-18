@@ -8,6 +8,7 @@ import (
 	"github.com/justusschock/go-lifecycle/handoff"
 )
 
+// FR-EXEC-06
 func TestExitErrorPreservesCauseAndResult(t *testing.T) {
 	want := errors.New("wait failed")
 	err := &ExitError{Result: Result{ExitCode: 7}, Cause: want}
@@ -23,6 +24,7 @@ func TestExitErrorPreservesCauseAndResult(t *testing.T) {
 	}
 }
 
+// FR-EXEC-06
 func TestExitErrorWithoutCause(t *testing.T) {
 	err := &ExitError{Result: Result{ExitCode: 9}}
 
@@ -34,6 +36,7 @@ func TestExitErrorWithoutCause(t *testing.T) {
 	}
 }
 
+// FR-EXEC-06
 func TestStableErrorsExist(t *testing.T) {
 	errorsByName := map[string]error{
 		"ErrInvalidCommand":      ErrInvalidCommand,

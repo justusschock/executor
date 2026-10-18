@@ -19,6 +19,7 @@ import (
 
 const grandchildScript = `sleep 100 & echo $!; wait`
 
+// FR-EXEC-09, FR-EXEC-10
 func TestProcessGroupCancellationKillsGrandchildren(t *testing.T) {
 	t.Parallel()
 
@@ -69,6 +70,7 @@ func TestProcessGroupCancellationKillsGrandchildren(t *testing.T) {
 	}
 }
 
+// FR-EXEC-09
 func TestProcessGroupSignalAndKillReachGrandchildren(t *testing.T) {
 	t.Parallel()
 
@@ -110,6 +112,7 @@ func TestProcessGroupSignalAndKillReachGrandchildren(t *testing.T) {
 	}
 }
 
+// FR-EXEC-11
 func TestShellRunsScriptsThroughShell(t *testing.T) {
 	t.Parallel()
 
