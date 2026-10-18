@@ -8,67 +8,36 @@ While the major version is `0`, a minor release may break the API.
 
 ## [Unreleased]
 
-Preparation for the first public release. No API changes.
+## [0.1.0] - 2026-10-18
 
-### Changed
-
-- Public API boundary reviewed: every exported identifier in `executor` and
-  `local` is part of the public API; nothing moved to `internal/`, unexported
-  or removed ([ADR-0011](docs/adr/0011-public-api-boundary.md)).
-- Minimum Go version stays 1.25, required by `testing/synctest`; CI tests Go
-  1.25, `oldstable` and `stable`
-  ([ADR-0012](docs/adr/0012-supported-go-versions.md)).
-- `RunAll` tests run in `testing/synctest` bubbles instead of using
-  wall-clock timeouts.
-- CI pins every action to a commit SHA, needs no credentials, vets every
-  supported platform and runs golangci-lint; Dependabot keeps Go modules and
-  actions current.
-- The README describes public installation and the full API.
+First public release.
 
 ### Added
 
-- Package documentation and doc comments for every exported identifier.
-- Runnable examples for the quick start, `RunAll`, `NewPrefixWriter` and
-  `NewRemote`.
-- `NOTICE`, `AGENTS.md`, a requirements document and architecture decision
-  records under `docs/`.
+- `Command` contract: path, arguments, working directory, inherited or
+  cleared (`ClearEnv`) environment, optional standard streams, `Validate`
+  and `Clone`.
+- `Executor`, `Process` and `Result` contracts; `Process` offers repeatable
+  `Wait`, `Signal`, `Kill` and `Export`.
+- Package `local`: `local.New()` runs commands with `os/exec`, streams
+  output while capturing it, and reports exit code, timing and resource
+  `Usage`.
+- Process groups (`ProcessGroup`) and graceful stop (`KillGrace`: `TERM`,
+  then `KILL` after a grace period).
+- `Shell` and `ShellWith`: scripts through the platform shell or a chosen
+  interpreter, in their own process group.
+- Bounded capture through `MaxStdoutBytes` and `MaxStderrBytes`, while
+  writers still receive every byte.
+- `RunAll`: bounded-concurrency batches with results in input order that
+  stop on the first failure.
+- `NewPrefixWriter`: line-prefixed output that never interleaves lines from
+  concurrent commands.
+- `NewRemote`: turns any one-method `Starter` into an `Executor`.
+- Non-zero exits return the populated `Result` together with an
+  `*ExitError`.
+- Requirements and architecture decision records under `docs/`.
 
-## [0.4.0] - 2026-10-15
+Requires Go 1.25 or newer.
 
-### Added
-
-- `Shell`, `ShellWith`, `ShellOptions`, `DefaultShell` and
-  `DefaultKillGrace` for running scripts through a shell.
-- `Command.ProcessGroup` to signal and cancel a command's whole process
-  group (Job Object on Windows).
-- `Command.KillGrace` to send `TERM` before `KILL` on start-context
-  cancellation.
-- `NewPrefixWriter` and `MaxPrefixLineBytes` for line-prefixed,
-  non-interleaving output.
-- `Result.Usage` with CPU time, peak RSS and block I/O.
-
-### Changed
-
-- Minimum Go version raised to 1.25 for `testing/synctest`.
-
-## [0.3.0] - 2026-08-11
-
-### Added
-
-- `Command.ClearEnv` to run commands without the inherited environment.
-
-## [0.2.0] - 2026-07-17
-
-### Added
-
-- `Command`, `Executor`, `Process`, `Result`, `ExitError` and sentinel errors.
-- `local.Executor` with streaming, capture, signals and process-reference
-  export.
-- Bounded capture with `MaxStdoutBytes`/`MaxStderrBytes`.
-- `RunAll` for bounded, ordered parallel execution.
-- `Remote` and `Starter` for remote transports.
-
-[Unreleased]: https://github.com/justusschock/executor/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/justusschock/executor/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/justusschock/executor/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/justusschock/executor/releases/tag/v0.2.0
+[Unreleased]: https://github.com/justusschock/executor/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/justusschock/executor/releases/tag/v0.1.0
