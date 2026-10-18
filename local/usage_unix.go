@@ -6,7 +6,7 @@ import (
 	"os"
 	"syscall"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 func platformUsage(state *os.ProcessState) executor.Usage {

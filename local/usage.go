@@ -3,7 +3,7 @@ package local
 import (
 	"os"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 func usageFromState(state *os.ProcessState) executor.Usage {

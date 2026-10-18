@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 const (

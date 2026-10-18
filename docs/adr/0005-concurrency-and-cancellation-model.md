@@ -81,5 +81,5 @@ reap. `RunAll` delegates admission, ordering and peer cancellation to
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)
 - [ADR-0006](0006-process-groups-and-kill-escalation.md)

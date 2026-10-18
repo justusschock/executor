@@ -3,7 +3,7 @@ package executor
 import (
 	"context"
 
-	"github.com/justusschock/go-lifecycle/handoff"
+	"github.com/justusschock/lifecycle/handoff"
 )
 
 // Executor starts commands and waits for their results. Implementations must

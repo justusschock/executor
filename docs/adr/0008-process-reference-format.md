@@ -17,7 +17,7 @@ environment and stdin. A PID alone can be reused after the process exits,
 and the exporting component still owns the process.
 
 `Process.Export` on a live local process returns a `handoff.Artifact`
-(go-lifecycle) with:
+(lifecycle) with:
 
 - media type `application/vnd.justusschock.process-reference+json`,
   version `1`, metadata `kind=local-process-reference`;
@@ -69,4 +69,4 @@ new version number and an ADR.
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

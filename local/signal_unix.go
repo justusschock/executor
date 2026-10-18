@@ -7,7 +7,7 @@ import (
 	"os"
 	"syscall"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 func signalByName(process *os.Process, name string) error {

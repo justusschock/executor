@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 func configureCommand(cmd *exec.Cmd, command executor.Command) {

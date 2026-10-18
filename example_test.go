@@ -8,8 +8,8 @@ import (
 	"log"
 	"strings"
 
-	executor "github.com/justusschock/go-executor"
-	"github.com/justusschock/go-executor/local"
+	executor "github.com/justusschock/executor"
+	"github.com/justusschock/executor/local"
 )
 
 // Run a shell command on the local machine and inspect its result.

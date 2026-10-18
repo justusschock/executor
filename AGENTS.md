@@ -1,10 +1,10 @@
 # AGENTS.md
 
-Rules for anyone, human or agent, changing go-executor. They are binding. If a
+Rules for anyone, human or agent, changing executor. They are binding. If a
 change has to break one, say so in the pull request and, where it is a design
 decision, record it in an ADR.
 
-go-executor is a Go library of portable contracts and a local `os/exec`
+executor is a Go library of portable contracts and a local `os/exec`
 implementation for running external commands, with bounded output capture,
 process-group control, graceful cancellation, ordered parallel batches and
 remote adapters. Its requirements and design decisions are
@@ -72,7 +72,7 @@ No behaviour is added or changed before the documents that govern it say so.
 
 1. **Small, explicit contracts.** Every exported type and function documents
    its behaviour, errors, concurrency safety and cancellation.
-2. **Dependencies.** Standard library, `go-concurrency` and `go-lifecycle`
+2. **Dependencies.** Standard library, `concurrency` and `lifecycle`
    only ([ADR-0003](docs/adr/0003-dependency-policy.md)); a new dependency
    needs an ADR. Platform calls use `syscall`, not `golang.org/x/sys`.
 3. **Errors.** Sentinel errors and typed errors are part of the API; wrap

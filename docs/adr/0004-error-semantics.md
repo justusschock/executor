@@ -73,4 +73,4 @@ failures by command index, and forward adapter errors unchanged.
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

@@ -64,4 +64,4 @@ kill grace period, with verbatim script passing for `cmd.exe /s /c`.
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"time"
 
-	concurrency "github.com/justusschock/go-concurrency"
-	executor "github.com/justusschock/go-executor"
+	concurrency "github.com/justusschock/concurrency"
+	executor "github.com/justusschock/executor"
 )
 
 var _ executor.Process = (*process)(nil)

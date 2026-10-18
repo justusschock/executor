@@ -68,7 +68,7 @@ Preparation for the first public release. No API changes.
 - `RunAll` for bounded, ordered parallel execution.
 - `Remote` and `Starter` for remote transports.
 
-[Unreleased]: https://github.com/justusschock/go-executor/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/justusschock/go-executor/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/justusschock/go-executor/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/justusschock/go-executor/releases/tag/v0.2.0
+[Unreleased]: https://github.com/justusschock/executor/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/justusschock/executor/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/justusschock/executor/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/justusschock/executor/releases/tag/v0.2.0

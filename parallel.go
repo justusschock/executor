@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/justusschock/go-concurrency"
+	"github.com/justusschock/concurrency"
 )
 
 // RunAll executes commands with at most limit concurrent calls to runner and

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
-	"github.com/justusschock/go-lifecycle/handoff"
+	executor "github.com/justusschock/executor"
+	"github.com/justusschock/lifecycle/handoff"
 )
 
 const localProcessReferenceMediaType = "application/vnd.justusschock.process-reference+json"

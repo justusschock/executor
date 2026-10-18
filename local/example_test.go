@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 func ExampleExecutor_Run() {

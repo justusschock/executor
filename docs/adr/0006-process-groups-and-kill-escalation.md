@@ -74,4 +74,4 @@ so that it can be tested with virtual time.
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

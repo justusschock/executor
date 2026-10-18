@@ -1,6 +1,6 @@
-# go-executor
+# executor
 
-`go-executor` is a Go library for running external commands with precise,
+`executor` is a Go library for running external commands with precise,
 tested semantics: portable command and process contracts, a local `os/exec`
 implementation with bounded output capture, process-group control and
 graceful cancellation, ordered parallel batches, line-prefixed output
@@ -43,7 +43,7 @@ process manager.
 ## Installation
 
 ```bash
-go get github.com/justusschock/go-executor@latest
+go get github.com/justusschock/executor@latest
 ```
 
 Requires Go 1.25 or newer. Import the contracts and the local
@@ -51,8 +51,8 @@ implementation as:
 
 ```go
 import (
-	executor "github.com/justusschock/go-executor"
-	"github.com/justusschock/go-executor/local"
+	executor "github.com/justusschock/executor"
+	"github.com/justusschock/executor/local"
 )
 ```
 
@@ -71,8 +71,8 @@ import (
 	"log"
 	"strings"
 
-	executor "github.com/justusschock/go-executor"
-	"github.com/justusschock/go-executor/local"
+	executor "github.com/justusschock/executor"
+	"github.com/justusschock/executor/local"
 )
 
 func main() {
@@ -188,7 +188,7 @@ input order. On the first failure it stops admitting commands, cancels the
 running ones through their contexts, waits for them and returns no results;
 failures are labelled with their command index and joined. A non-positive
 limit returns `concurrency.ErrInvalidLimit` from
-[go-concurrency](https://github.com/justusschock/go-concurrency).
+[concurrency](https://github.com/justusschock/concurrency).
 
 ### Label streamed output
 
@@ -237,7 +237,7 @@ remote, err := executor.NewRemote(myStarter)
 authentication and custody are the adapter's responsibility.
 
 `Process.Export` returns a `handoff.Artifact` from
-[go-lifecycle](https://github.com/justusschock/go-lifecycle) with media type
+[lifecycle](https://github.com/justusschock/lifecycle) with media type
 `application/vnd.justusschock.process-reference+json`, version `1`, and only
 the JSON fields `pid`, `path` and `started_at`. Arguments, environment and
 streams are never included. Export does not transfer custody, and a
@@ -247,8 +247,8 @@ reference can become stale. `Remote.Adopt` returns `ErrUnsupportedAdoption`.
 
 | Package | Import path | Purpose |
 |---|---|---|
-| `executor` | `github.com/justusschock/go-executor` | Contracts (`Command`, `Executor`, `Process`, `Result`, `ExitError`), shells, `RunAll`, `NewPrefixWriter`, `Remote` |
-| `local` | `github.com/justusschock/go-executor/local` | `Executor` implementation for the local machine using `os/exec` |
+| `executor` | `github.com/justusschock/executor` | Contracts (`Command`, `Executor`, `Process`, `Result`, `ExitError`), shells, `RunAll`, `NewPrefixWriter`, `Remote` |
+| `local` | `github.com/justusschock/executor/local` | `Executor` implementation for the local machine using `os/exec` |
 
 Anything under `internal/` (none today) is not part of the API.
 
@@ -288,7 +288,7 @@ Anything under `internal/` (none today) is not part of the API.
 
 ## Documentation
 
-- API reference: [pkg.go.dev/github.com/justusschock/go-executor](https://pkg.go.dev/github.com/justusschock/go-executor)
+- API reference: [pkg.go.dev/github.com/justusschock/executor](https://pkg.go.dev/github.com/justusschock/executor)
 - Requirements and design decisions: [docs/README.md](docs/README.md)
   (PRD and ADRs)
 

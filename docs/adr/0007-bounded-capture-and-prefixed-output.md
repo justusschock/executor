@@ -71,4 +71,4 @@ positive limit is set, forward every byte to configured writers, and provide
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

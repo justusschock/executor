@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 const grandchildScript = `sleep 100 & echo $!; wait`

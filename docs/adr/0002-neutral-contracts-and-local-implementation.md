@@ -72,4 +72,4 @@ Process control is the `Process` interface returned by `Start`; `Run` is
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

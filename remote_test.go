@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/justusschock/go-lifecycle/handoff"
+	"github.com/justusschock/lifecycle/handoff"
 )
 
 // FR-EXEC-15

@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 const processTestTimeout = 5 * time.Second

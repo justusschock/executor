@@ -10,7 +10,7 @@
 
 ## Context
 
-Recorded retrospectively for the first public release. go-executor's design
+Recorded retrospectively for the first public release. executor's design
 decisions (who owns a process's lifetime, how cancellation escalates, what an
 exit error carries, how output is bounded, what an exported process
 reference contains) were visible only in code, tests, the README and commit

@@ -1,4 +1,4 @@
-# go-executor documentation
+# executor documentation
 
 Requirements (PRDs) say *what* the library does; architecture decision
 records (ADRs) say *how and why*. The process is described in
@@ -12,7 +12,7 @@ Requirement area code: `EXEC` (`FR-EXEC-NN`, `NFR-EXEC-NN`).
 
 | PRD | Title | Status | Implementation |
 |---|---|---|---|
-| [0001](prd/0001-go-executor.md) | go-executor | Accepted | Complete |
+| [0001](prd/0001-executor.md) | executor | Accepted | Complete |
 
 ## Architecture decisions
 

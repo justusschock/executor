@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 // escalation stops a process when its start context ends: it requests

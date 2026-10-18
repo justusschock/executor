@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 var _ executor.Executor = (*Executor)(nil)

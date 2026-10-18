@@ -10,14 +10,14 @@
 
 ## Context
 
-Recorded retrospectively. go-executor depends on the standard library and
+Recorded retrospectively. executor depends on the standard library and
 two sibling modules:
 
-- `github.com/justusschock/go-concurrency`: `ParallelMap` implements
+- `github.com/justusschock/concurrency`: `ParallelMap` implements
   `RunAll`'s bounded, ordered, fail-fast admission, and `Future` holds each
   local process's single reap result so that `Wait` can be called any number
   of times with independent contexts.
-- `github.com/justusschock/go-lifecycle/handoff`: `handoff.Artifact` is the
+- `github.com/justusschock/lifecycle/handoff`: `handoff.Artifact` is the
   envelope for exported process references, and `handoff.Adopter` is the
   interface `Remote.Adopt` satisfies.
 
@@ -49,14 +49,14 @@ through `syscall.NewLazyDLL` rather than `golang.org/x/sys/windows`.
 
 ## Decision
 
-We will depend on the standard library, go-concurrency and go-lifecycle
+We will depend on the standard library, concurrency and lifecycle
 only. A new dependency, including another sibling module, needs an ADR.
 
 ## Consequences
 
 ### Positive
 - Small, auditable dependency graph.
-- `RunAll` inherits go-concurrency's documented admission and error-joining
+- `RunAll` inherits concurrency's documented admission and error-joining
   semantics.
 
 ### Negative
@@ -69,5 +69,5 @@ only. A new dependency, including another sibling module, needs an ADR.
 
 ## Links
 
-- [go-concurrency](https://github.com/justusschock/go-concurrency)
-- [go-lifecycle](https://github.com/justusschock/go-lifecycle)
+- [concurrency](https://github.com/justusschock/concurrency)
+- [lifecycle](https://github.com/justusschock/lifecycle)

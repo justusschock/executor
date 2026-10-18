@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/justusschock/go-lifecycle/handoff"
+	"github.com/justusschock/lifecycle/handoff"
 )
 
 // FR-EXEC-06

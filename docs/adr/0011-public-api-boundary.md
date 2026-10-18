@@ -77,4 +77,4 @@ Future implementation-only packages go under `internal/`.
 
 ## Links
 
-- [PRD-0001](../prd/0001-go-executor.md)
+- [PRD-0001](../prd/0001-executor.md)

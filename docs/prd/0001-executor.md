@@ -1,4 +1,4 @@
-# PRD 0001: go-executor
+# PRD 0001: executor
 
 | Field | Value |
 |---|---|
@@ -23,7 +23,7 @@ from parallel commands is kept readable, how a non-zero exit is reported
 together with its output, and how the same calling code can run commands
 locally or through a remote transport.
 
-go-executor answers these once, behind small contracts: a `Command` value, an
+executor answers these once, behind small contracts: a `Command` value, an
 `Executor`/`Process` interface pair, a local `os/exec` implementation, and
 helpers for shells, bounded parallel runs, prefixed output and remote
 adapters.
@@ -100,7 +100,7 @@ adapters.
 |---|---|---|
 | NFR-EXEC-01 | Concurrency safety: `local.Executor`, `Remote` (given a safe `Starter`), `Process` methods and prefix writers are safe for concurrent use. | `go test -race -count=3 ./...` passes. |
 | NFR-EXEC-02 | Portability: the root package contains no OS process code; `local` builds on Windows, aix, android, darwin, dragonfly, freebsd, linux, netbsd, openbsd and solaris. | CI `cross` job runs `go vet` for each target. |
-| NFR-EXEC-03 | Dependencies: standard library plus `go-concurrency` and `go-lifecycle` only. | `go.mod` require list. |
+| NFR-EXEC-03 | Dependencies: standard library plus `concurrency` and `lifecycle` only. | `go.mod` require list. |
 | NFR-EXEC-04 | Minimum Go version 1.25 (for `testing/synctest`); no `replace` directives or committed `go.work`. | `TestRepositoryCompatibilityPolicy`; CI matrix `1.25.x`, `oldstable`, `stable`. |
 | NFR-EXEC-05 | Security: no implicit shell; exported references carry no arguments, environment or input; the library never logs. | `TestExportLiveProcessReference`; code review. |
 | NFR-EXEC-06 | Determinism: time-dependent logic that does not involve real processes is tested with virtual time. | Escalation and `RunAll` tests run in `synctest` bubbles. |

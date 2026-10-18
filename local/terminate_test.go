@@ -10,7 +10,7 @@ import (
 	"testing/synctest"
 	"time"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 // FR-EXEC-10

@@ -5,7 +5,7 @@ package local
 import (
 	"os"
 
-	executor "github.com/justusschock/go-executor"
+	executor "github.com/justusschock/executor"
 )
 
 // platformUsage reports no memory or I/O counters on Windows: the process
