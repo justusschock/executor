@@ -2,57 +2,101 @@ name: CI
 
 on:
   push:
+    branches: [main]
+    tags: ['v*']
   pull_request:
 
 permissions:
   contents: read
 
-env:
-  GOPRIVATE: github.com/justusschock/*
-  GONOSUMDB: github.com/justusschock/*
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
-    name: Go ${{ matrix.go }}
+    name: Test (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        go:
-          - '1.25.x'
-          - '1.26.x'
-
+        go-version: ['1.25.x', 'oldstable', 'stable']
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: ${{ matrix.go }}
-          cache: true
+          go-version: ${{ matrix.go-version }}
 
-      - name: Configure private module authentication
-        env:
-          GO_MODULES_TOKEN: ${{ secrets.GO_MODULES_TOKEN }}
-        shell: bash
-        run: |
-          test -n "${GO_MODULES_TOKEN}"
-          umask 077
-          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "${GO_MODULES_TOKEN}" > "${HOME}/.netrc"
-
-      - name: Verify module
-        run: |
-          go mod download
-          go mod verify
-          go mod tidy
-          git diff --exit-code -- go.mod go.sum
-
-      - name: Run tests
-        run: go test ./...
-
-      - name: Run race tests
-        run: go test -race ./...
+      - name: Verify modules
+        run: go mod verify
 
       - name: Vet
         run: go vet ./...
+
+      - name: Test
+        run: go test -race -count=1 ./...
+
+  cross:
+    name: Vet (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every platform the local package supports; tests run on Linux only.
+        target:
+          - windows/amd64
+          - darwin/arm64
+          - freebsd/amd64
+          - openbsd/amd64
+          - netbsd/amd64
+          - dragonfly/amd64
+          - solaris/amd64
+          - aix/ppc64
+          - android/arm64
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+
+      - name: Vet
+        env:
+          TARGET: ${{ matrix.target }}
+        run: GOOS="${TARGET%/*}" GOARCH="${TARGET#*/}" go vet ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+
+      - name: Check go.mod and go.sum are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
