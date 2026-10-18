@@ -184,7 +184,7 @@ func assertProcessGone(t *testing.T, pid int) {
 	deadline := time.Now().Add(processTestTimeout)
 	for {
 		err := syscall.Kill(pid, 0)
-		if errors.Is(err, syscall.ESRCH) {
+		if errors.Is(err, syscall.ESRCH) || (err == nil && isZombie(pid)) {
 			return
 		}
 		if time.Now().After(deadline) {
